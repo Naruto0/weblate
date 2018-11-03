@@ -247,6 +247,13 @@ class SubscriptionSettingsForm(forms.ModelForm):
                 'subscribe_new_contributor',
                 'subscribe_new_comment',
             ),
+            Fieldset(
+                _('Digest setting'),
+                HTML(escape(_(
+                    'You will Receive only daily digest for language notifications.'
+                ))),
+                'subscribe_only_digest'
+            ),
         )
 
 

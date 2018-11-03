@@ -436,6 +436,10 @@ class Profile(models.Model):
         verbose_name=_('Notification on new language request'),
         default=False
     )
+    subscribe_only_digest = models.BooleanField(
+        verbose_name=_('Send only daily digest notifications'),
+        default=False
+    )
 
     SUBSCRIPTION_FIELDS = (
         'subscribe_any_translation',
@@ -445,6 +449,7 @@ class Profile(models.Model):
         'subscribe_new_comment',
         'subscribe_merge_failure',
         'subscribe_new_language',
+        'subscribe_only_digest',
     )
 
     objects = ProfileManager()
