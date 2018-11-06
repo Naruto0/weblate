@@ -19,7 +19,7 @@
 #
 """Custom Weblate signals"""
 
-from django.dispatch import Signal
+from django.dispatch import Signal, receiver
 
 vcs_post_push = Signal(providing_args=['component'])
 vcs_post_update = Signal(providing_args=['component', 'previous_head'])
@@ -29,3 +29,4 @@ translation_post_add = Signal(providing_args=['translation'])
 unit_pre_create = Signal(providing_args=['unit'])
 user_pre_delete = Signal()
 store_post_load = Signal(providing_args=['store', 'translation'])
+# unit_post_save = Signal(providing_args=['unit','user'])

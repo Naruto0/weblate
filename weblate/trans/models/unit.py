@@ -637,9 +637,6 @@ class Unit(models.Model, LoggerMixin):
             user.profile.translated += 1
             user.profile.save()
 
-        # Notify subscribed users about new translation
-        from weblate.accounts.notifications import notify_new_translation
-        notify_new_translation(self, self.old_unit, user)
 
         # Update related source strings if working on a template
         if self.translation.is_template:
