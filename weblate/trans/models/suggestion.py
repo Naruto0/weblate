@@ -86,8 +86,8 @@ class SuggestionManager(models.Manager):
             )
 
         # Notify subscribed users
-        from weblate.accounts.notifications import notify_new_suggestion
-        notify_new_suggestion(unit, suggestion, user)
+        # from weblate.accounts.notifications import notify_new_suggestion
+        # notify_new_suggestion(unit, suggestion, user)
 
         # Update suggestion stats
         if user is not None:
