@@ -19,7 +19,7 @@
 #
 """Custom Weblate signals"""
 
-from django.dispatch import Signal, receiver
+from django.dispatch import Signal
 
 vcs_post_push = Signal(providing_args=['component'])
 vcs_post_update = Signal(providing_args=['component', 'previous_head'])

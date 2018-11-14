@@ -51,3 +51,5 @@ class UtilsConfig(AppConfig):
         register(check_site, deploy=True)
 
         monkey_patch_translate()
+
+        import weblate.dispatchers

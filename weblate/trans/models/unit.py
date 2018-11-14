@@ -1046,4 +1046,3 @@ class Unit(models.Model, LoggerMixin):
 
     def get_target_hash(self):
         return calculate_hash(None, self.target)
-        
