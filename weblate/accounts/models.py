@@ -215,9 +215,10 @@ class ProfileManager(models.Manager):
     """Manager providing shortcuts for subscription queries."""
     # pylint: disable=no-init
 
-    def subscribed_any_translation(self, project, language, user):
+    def subscribed_any_translation(self, project, language, user, digest=False):
         return self.filter(
             subscribe_any_translation=True,
+            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         ).exclude(
@@ -232,16 +233,18 @@ class ProfileManager(models.Manager):
             user=user
         )
 
-    def subscribed_new_string(self, project, language):
+    def subscribed_new_string(self, project, language, digest=False):
         return self.filter(
             subscribe_new_string=True,
+            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         )
 
-    def subscribed_new_suggestion(self, project, language, user):
+    def subscribed_new_suggestion(self, project, language, user, digest=False):
         ret = self.filter(
             subscribe_new_suggestion=True,
+            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         )
@@ -250,18 +253,26 @@ class ProfileManager(models.Manager):
             ret = ret.exclude(user=user)
         return ret
 
-    def subscribed_new_contributor(self, project, language, user):
+    def subscribed_new_contributor(
+        self,
+        project,
+        language,
+        user,
+        digest=False
+    ):
         return self.filter(
             subscribe_new_contributor=True,
+            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         ).exclude(
             user=user
         )
 
-    def subscribed_new_comment(self, project, language, user):
+    def subscribed_new_comment(self, project, language, user, digest=False):
         ret = self.filter(
             subscribe_new_comment=True,
+            subscribe_only_digest=digest,
             subscriptions=project
         ).exclude(
             user=user

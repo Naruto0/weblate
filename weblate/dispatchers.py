@@ -23,13 +23,19 @@ from django.db.models.signals import post_save
 
 from weblate.trans.models import Change
 
-from weblate.accounts.notifications import notify_new_translation
-from weblate.accounts.notifications import notify_new_suggestion
-from weblate.accounts.notifications import notify_new_comment
+from weblate.accounts.notifications import (
+    notify_new_translation,
+    notify_new_string,
+    notify_new_suggestion,
+    notify_new_comment,
+    notify_merge_failure
+)
+from change_notification import enqueue_change
 
 
 @receiver(post_save, sender=Change)
-def change_dispatcher(sender, instance, **kwargs):
+def instant_change_dispatcher(sender, instance, **kwargs):
+    # handle default non digest notifications
     if instance.action == Change.ACTION_SUGGESTION:
         notify_new_suggestion(
             instance.unit,
@@ -39,13 +45,30 @@ def change_dispatcher(sender, instance, **kwargs):
     elif instance.action == Change.ACTION_COMMENT:
         notify_new_comment(
             instance.unit,
-            instance.target,
+            instance.translation,
             instance.user,
             instance.component.report_source_bugs
-            )
+        )
     elif instance.action == Change.ACTION_NEW:
         notify_new_translation(
-            instance.translation,
-            instance.old_unit,
+            instance,
+            instance.unit.old_unit,
             instance.user
         )
+    elif instance.action == Change.ACTION_NEW_SOURCE:
+        notify_new_string(
+            instance,
+            instance.user
+        )
+    elif instance.action == Change.ACTION_FAILED_MERGE:
+        notify_merge_failure(
+            instance.component,
+            instance.error,
+            instance.status
+        )
+
+
+@receiver(post_save, sender=Change)
+def digest_dispatcher(instance, **kwargs):
+    # handle digest changes
+    enqueue_change(instance, **kwargs)
