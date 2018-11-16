@@ -215,7 +215,13 @@ class ProfileManager(models.Manager):
     """Manager providing shortcuts for subscription queries."""
     # pylint: disable=no-init
 
-    def subscribed_any_translation(self, project, language, user, digest=False):
+    def subscribed_any_translation(
+        self,
+        project,
+        language,
+        user,
+        digest=False
+    ):
         return self.filter(
             subscribe_any_translation=True,
             subscribe_only_digest=digest,
@@ -284,6 +290,12 @@ class ProfileManager(models.Manager):
 
     def subscribed_merge_failure(self, project):
         return self.filter(subscribe_merge_failure=True, subscriptions=project)
+
+    def subscribed_only_digest(self):
+        ret = self.filter(
+            subscribe_only_digest=True
+        )
+        return ret
 
 
 @python_2_unicode_compatible

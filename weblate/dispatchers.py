@@ -18,6 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 
@@ -30,7 +31,7 @@ from weblate.accounts.notifications import (
     notify_new_comment,
     notify_merge_failure
 )
-from change_notification import enqueue_change
+from weblate.change_notification import enqueue_change
 
 
 @receiver(post_save, sender=Change)
@@ -67,8 +68,9 @@ def instant_change_dispatcher(sender, instance, **kwargs):
             instance.status
         )
 
-
+'''
 @receiver(post_save, sender=Change)
 def digest_dispatcher(instance, **kwargs):
     # handle digest changes
     enqueue_change(instance, **kwargs)
+'''
