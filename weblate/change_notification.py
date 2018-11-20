@@ -45,4 +45,3 @@ def process_digest(queue):
     subscriptions = Profile.objects.subscribed_only_digest()
     for profile in subscriptions:
         print getattr(profile, 'subscribe_new_suggestion')
-

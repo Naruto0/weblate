@@ -67,10 +67,3 @@ def instant_change_dispatcher(sender, instance, **kwargs):
             instance.error,
             instance.status
         )
-
-'''
-@receiver(post_save, sender=Change)
-def digest_dispatcher(instance, **kwargs):
-    # handle digest changes
-    enqueue_change(instance, **kwargs)
-'''
