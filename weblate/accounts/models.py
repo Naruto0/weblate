@@ -297,7 +297,6 @@ class ProfileManager(models.Manager):
         )
         return ret
 
-
 @python_2_unicode_compatible
 class Profile(models.Model):
     """User profiles storage."""
@@ -491,6 +490,10 @@ class Profile(models.Model):
 
     def get_absolute_url(self):
         return reverse('user_page', kwargs={'user': self.user.username})
+
+    def get_active_subs(self):
+        return [sub for sub in self.SUBSCRIPTION_FIELDS if getattr(self, sub)]
+
 
     @property
     def full_name(self):

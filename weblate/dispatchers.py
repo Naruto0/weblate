@@ -58,8 +58,7 @@ def instant_change_dispatcher(sender, instance, **kwargs):
         )
     elif instance.action == Change.ACTION_NEW_SOURCE:
         notify_new_string(
-            instance,
-            instance.user
+            instance.translation
         )
     elif instance.action == Change.ACTION_FAILED_MERGE:
         notify_merge_failure(
