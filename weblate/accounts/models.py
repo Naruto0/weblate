@@ -220,11 +220,9 @@ class ProfileManager(models.Manager):
         project,
         language,
         user,
-        digest=False
     ):
         return self.filter(
             subscribe_any_translation=True,
-            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         ).exclude(
@@ -239,18 +237,16 @@ class ProfileManager(models.Manager):
             user=user
         )
 
-    def subscribed_new_string(self, project, language, digest=False):
+    def subscribed_new_string(self, project, language):
         return self.filter(
             subscribe_new_string=True,
-            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         )
 
-    def subscribed_new_suggestion(self, project, language, user, digest=False):
+    def subscribed_new_suggestion(self, project, language, user):
         ret = self.filter(
             subscribe_new_suggestion=True,
-            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         )
@@ -264,21 +260,18 @@ class ProfileManager(models.Manager):
         project,
         language,
         user,
-        digest=False
     ):
         return self.filter(
             subscribe_new_contributor=True,
-            subscribe_only_digest=digest,
             subscriptions=project,
             languages=language
         ).exclude(
             user=user
         )
 
-    def subscribed_new_comment(self, project, language, user, digest=False):
+    def subscribed_new_comment(self, project, language, user):
         ret = self.filter(
             subscribe_new_comment=True,
-            subscribe_only_digest=digest,
             subscriptions=project
         ).exclude(
             user=user
@@ -430,37 +423,52 @@ class Profile(models.Model):
         blank=True,
     )
 
-    subscribe_any_translation = models.BooleanField(
+    NEVER = 0
+    ALL = 1
+    DIGEST = 2
+    WEEKLY = 3
+
+    SUBSCRIPTION_TYPES = (
+        (NEVER, _('Do not send any notifications')),
+        (ALL, _('Send notifications immidately')),
+        (DIGEST, _('Send daily notifications digest')),
+        (WEEKLY, _('Send weekly notifications digest'))
+    )
+
+    subscribe_any_translation = models.IntegerField(
         verbose_name=_('Notification on any translation'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
-    subscribe_new_string = models.BooleanField(
+    subscribe_new_string = models.IntegerField(
         verbose_name=_('Notification on new string to translate'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
-    subscribe_new_suggestion = models.BooleanField(
+    subscribe_new_suggestion = models.IntegerField(
         verbose_name=_('Notification on new suggestion'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
-    subscribe_new_contributor = models.BooleanField(
+    subscribe_new_contributor = models.IntegerField(
         verbose_name=_('Notification on new contributor'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
-    subscribe_new_comment = models.BooleanField(
+    subscribe_new_comment = models.IntegerField(
         verbose_name=_('Notification on new comment'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
-    subscribe_merge_failure = models.BooleanField(
+    subscribe_merge_failure = models.IntegerField(
         verbose_name=_('Notification on merge failure'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
-    subscribe_new_language = models.BooleanField(
+    subscribe_new_language = models.IntegerField(
         verbose_name=_('Notification on new language request'),
-        default=False
-    )
-    subscribe_only_digest = models.BooleanField(
-        verbose_name=_('Send only daily digest notifications'),
-        default=False
+        choices=SUBSCRIPTION_TYPES,
+        default=NEVER
     )
 
     SUBSCRIPTION_FIELDS = (
@@ -470,8 +478,7 @@ class Profile(models.Model):
         'subscribe_new_contributor',
         'subscribe_new_comment',
         'subscribe_merge_failure',
-        'subscribe_new_language',
-        'subscribe_only_digest',
+        'subscribe_new_language'
     )
 
     objects = ProfileManager()
@@ -492,8 +499,8 @@ class Profile(models.Model):
         return reverse('user_page', kwargs={'user': self.user.username})
 
     def get_active_subs(self):
-        return [sub for sub in self.SUBSCRIPTION_FIELDS if getattr(self, sub)]
-
+        return [{sub: getattr(self, sub)} for sub in self.SUBSCRIPTION_FIELDS
+                if getattr(self, sub)]
 
     @property
     def full_name(self):
