@@ -246,7 +246,7 @@ class SubscriptionSettingsForm(forms.ModelForm):
                 'subscribe_new_suggestion',
                 'subscribe_new_contributor',
                 'subscribe_new_comment',
-            )
+            ),
         )
 
 
