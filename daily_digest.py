@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from weblate.trans.models import Change
 from weblate.accounts.models import Profile
+from django.template.loader import render_to_string
 
 
 # map <change.action> to <Profile> model subscription field
