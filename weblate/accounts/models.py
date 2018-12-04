@@ -274,6 +274,17 @@ class ProfileManager(models.Manager):
     def subscribed_merge_failure(self, project):
         return self.filter(subscribe_merge_failure=True, subscriptions=project)
 
+    def subscribed_to_digest(self, interval):
+        q = models.Q(subscribe_any_translation=interval)
+        q.add(models.Q(subscribe_merge_failure=interval), models.Q.OR)
+        q.add(models.Q(subscribe_new_comment=interval), models.Q.OR)
+        q.add(models.Q(subscribe_new_contributor=interval),
+              models.Q.OR)
+        q.add(models.Q(subscribe_new_suggestion=interval), models.Q.OR)
+        q.add(models.Q(subscribe_new_string=interval), models.Q.OR)
+        q.add(models.Q(subscribe_merge_failure=interval), models.Q.OR)
+        return self.filter(q)
+
 
 @python_2_unicode_compatible
 class Profile(models.Model):
@@ -410,13 +421,13 @@ class Profile(models.Model):
 
     NEVER = 0
     ALL = 1
-    DIGEST = 2
+    DAILY = 2
     WEEKLY = 3
 
     SUBSCRIPTION_TYPES = (
         (NEVER, _('Do not send any notifications')),
         (ALL, _('Send notifications immidately')),
-        (DIGEST, _('Send daily notifications digest')),
+        (DAILY, _('Send daily notifications digest')),
         (WEEKLY, _('Send weekly notifications digest'))
     )
 
@@ -483,9 +494,10 @@ class Profile(models.Model):
     def get_absolute_url(self):
         return reverse('user_page', kwargs={'user': self.user.username})
 
-    def get_active_subs(self):
-        return [{sub: getattr(self, sub)} for sub in self.SUBSCRIPTION_FIELDS
-                if getattr(self, sub)]
+    # interval is identical to SUBSCRIPTION_TYPES
+    def get_digest_subs(self, interval):
+        return [sub for sub in self.SUBSCRIPTION_FIELDS
+                if getattr(self, sub) == interval]
 
     @property
     def full_name(self):

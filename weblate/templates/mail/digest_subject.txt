@@ -1,0 +1,4 @@
+{% load i18n %}
+{% autoescape off %}
+{% blocktrans %}New changes for last {{ timespan }} on your projects. {% endblocktrans %}
+{% endautoescape %}

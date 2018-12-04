@@ -5,6 +5,7 @@ from weblate.accounts.models import Profile
 from django.template.loader import render_to_string
 
 
+
 # map <change.action> to <Profile> model subscription field
 # TODO: Once changes for below ins implemented add:
 
@@ -20,15 +21,16 @@ SUBSCRIPTION_MAP = {
 
 
 # define date for chage extracion
+LAST_WEEK = datetime.now().date() - timedelta(days=1, week=1)
 YESTERDAY = datetime.now().date() - timedelta(days=1)
 TODAY = datetime.now().date()
 
 
-# process daily digest
-def process_digest():
+# Interval based on Profile.SUBSCRIPTION_TYPES
+def process_digest(interval=2):
     """ Process changes from yesterday picking changes based on
     Profile subscriptions."""
-    digest_profiles = Profile.objects.subscribed_only_digest()
+    digest_profiles = Profile.objects.subscribed_to_digest(interval)
     for profile in digest_profiles:
         profile_sub_proj = profile.subscriptions.all()
         profile_subs = []
@@ -45,7 +47,7 @@ def process_digest():
         print profile
         print '===================='
         print 'subscriptions:'
-        print profile.get_active_subs()
+        print profile.get_digest_subs(interval)
 
         # for each project in notification subscribed projects
         for sub_project in profile_sub_proj:
@@ -70,3 +72,12 @@ def process_digest():
 
     # for each change
     # affected_projects= today_changes.prefetch('project_id')
+
+
+def fire_an_email():
+    context = {}
+    context['timespan'] = 'week'
+    context['subject_template'] = 'mail/digest_subject.txt'
+    context['translation'] = 'whatever'
+    print context
+    print render_to_string('mail/digest.html', context)
