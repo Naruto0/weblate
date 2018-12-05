@@ -1,16 +1,13 @@
-from datetime import datetime, timedelta
-
 from weblate.trans.models import Change
 from weblate.accounts.models import Profile
 from django.template.loader import render_to_string
-
+from django.utils.translation import ugettext_lazy as _
 
 
 # map <change.action> to <Profile> model subscription field
 # TODO: Once changes for below ins implemented add:
-
-# 'subscribe_new_contributor': None,
-# 'subscribe_new_language': None
+#   'subscribe_new_contributor': None,
+#   'subscribe_new_language': None
 SUBSCRIPTION_MAP = {
     'subscribe_any_translation': Change.ACTION_NEW,
     'subscribe_new_string': Change.ACTION_NEW_SOURCE,
@@ -19,11 +16,12 @@ SUBSCRIPTION_MAP = {
     'subscribe_merge_failure': Change.ACTION_FAILED_MERGE,
 }
 
-
-# define date for chage extracion
-LAST_WEEK = datetime.now().date() - timedelta(days=1, week=1)
-YESTERDAY = datetime.now().date() - timedelta(days=1)
-TODAY = datetime.now().date()
+CHANGE_MAP = {
+    Change.ACTION_NEW: 'translation',
+    Change.ACTION_NEW_SOURCE: 'string',
+    Change.ACTION_SUGGESTION: 'suggestion',
+    Change.ACTION_COMMENT: 'comment'
+}
 
 
 # Interval based on Profile.SUBSCRIPTION_TYPES
@@ -34,50 +32,52 @@ def process_digest(interval=2):
     for profile in digest_profiles:
         profile_sub_proj = profile.subscriptions.all()
         profile_subs = []
-        email = []
 
         # If the action is not mapped it won't get through filter
-        for _ in profile.get_active_subs():
+        for x in profile.get_digest_subs(interval):
             try:
-                profile_subs.append(SUBSCRIPTION_MAP[_])
+                profile_subs.append(SUBSCRIPTION_MAP[x])
             except KeyError:
                 pass
 
-        print 'User:'
-        print profile
-        print '===================='
-        print 'subscriptions:'
-        print profile.get_digest_subs(interval)
+        context = {'projects': []}
 
         # for each project in notification subscribed projects
         for sub_project in profile_sub_proj:
 
-            print 'Project:'
-            print sub_project
-            print '________________'
-            # 
-            today_changes = Change.objects.filter(
-                timestamp__date=TODAY,
-                project_id=sub_project,
-                action__in=profile_subs,
-            ).exclude(
-                user_id=profile.user_id
+            project = {'name': sub_project.name}
+            project['changes'] = []
+
+            proj_changes = Change.objects.digest(
+                interval,
+                sub_project,
+                profile_subs,
+                profile.user_id
             )
 
-            #if today_changes:
-            #    compose(today_changes)
+            for change in proj_changes:
+                template = 'mail/digest_{}'.format(CHANGE_MAP[change.action])
+                project['changes'].append(
+                    {
+                        'change': change,
+                        'template': template
+                    }
+                )
+            context['projects'].append(project)
+        print context
 
-            for change in today_changes:
-                print change
+    context['timespan'] = 'week'
 
-    # for each change
-    # affected_projects= today_changes.prefetch('project_id')
+    fire_an_email(profile, context)
 
 
-def fire_an_email():
+def fire_an_email(profile, context):
+    print render_to_string('mail/digest.html', context)
+    """
     context = {}
     context['timespan'] = 'week'
     context['subject_template'] = 'mail/digest_subject.txt'
     context['translation'] = 'whatever'
     print context
     print render_to_string('mail/digest.html', context)
+    """

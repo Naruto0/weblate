@@ -12,8 +12,7 @@
 {% blocktrans %}There had been changes made to below translation projects on Weblate for last {{ timespan }}.{% endblocktrans %}
 </p>
 
-{% block projects %}
-{% endblock %}
+{% for change in changes %}
 
 {% include "mail/footer.html" %}
 

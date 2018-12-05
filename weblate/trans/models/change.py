@@ -138,6 +138,20 @@ class ChangeQuerySet(models.QuerySet):
             'author__email', 'author__full_name'
         )
 
+    def digest(self, interval, project, actions, user):
+        """Returns QuerySet of digest Changes"""
+        if interval == 2:
+            days = 1
+        elif interval == 3:
+            days = 7
+        start = timezone.now() - timezone.timedelta(days=days + 1)
+        end = timezone.now() - timezone.timedelta(days=1)
+        return self.filter(
+            timestamp__range=(start, end),
+            project_id=project,
+            action__in=actions
+        ).exclude(user_id=user)
+
 
 class ChangeManager(models.Manager):
     def create(self, user=None, **kwargs):
