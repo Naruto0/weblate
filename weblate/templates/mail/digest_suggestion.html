@@ -1,14 +1,11 @@
-{% extends "mail/base.html" %}
-
 {% load i18n %}{% load translations %}
 
-{% block content %}
 <p>
 {% trans "Hi,"%}
 </p>
 
 <p>
-{% blocktrans %}There is a new suggestion to evaluate on {{ translation }} at {{ site_title }}.{% endblocktrans %}
+{% blocktrans %}There is a new suggestion to evaluate on {{ change.change.translation }} at {{ site_title }}.{% endblocktrans %}
 <p>
 
 <table>
@@ -19,7 +16,7 @@
 </th>
 
 <td>
-{% format_translation unit.source unit.translation.component.project.source_language %}
+{% format_translation change.change.unit.source change.change.unit.translation.component.project.source_language %}
 </td>
 </tr>
 
@@ -29,18 +26,18 @@
 </th>
 
 <td>
-{% format_translation suggestion.target unit.translation.language unit.translation.plural %}
+{% format_translation change.change.target change.change.unit.translation.language change.change.unit.translation.plural %}
 </td>
 </tr>
 
-{% if unit.translated %}
+{% if change.change.unit.translated %}
 <tr>
 <th>
 {% trans "Translation change:" %}
 </th>
 
 <td>
-{% format_translation suggestion.target unit.translation.language unit.translation.plural unit.target %}
+{% format_translation change.target change.change.unit.translation.language change.change.unit.translation.plural change.change.unit.target %}
 </td>
 </tr>
 {% endif %}
@@ -53,6 +50,3 @@
 <p>
 <a href="{{ current_site_url }}{{ unit.get_absolute_url }}">{{ current_site_url }}{{ unit.get_absolute_url }}</a>
 </p>
-
-{% include "mail/footer.html" %}
-{% endblock %}

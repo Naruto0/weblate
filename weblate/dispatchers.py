@@ -33,7 +33,7 @@ from weblate.accounts.notifications import (
 )
 from weblate.change_notification import enqueue_change
 
-from weblate.daily_digest import fire_an_email
+from weblate.daily_digest import process_digest
 
 
 @receiver(post_save, sender=Change)
@@ -71,4 +71,4 @@ def instant_change_dispatcher(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Change)
 def compose_email(sender, instance, **kwargs):
-    fire_an_email()
+    process_digest(3)

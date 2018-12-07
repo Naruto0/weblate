@@ -2,6 +2,7 @@ from weblate.trans.models import Change
 from weblate.accounts.models import Profile
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 
 # map <change.action> to <Profile> model subscription field
@@ -56,7 +57,7 @@ def process_digest(interval=2):
             )
 
             for change in proj_changes:
-                template = 'mail/digest_{}'.format(CHANGE_MAP[change.action])
+                template = 'mail/digest_{}.html'.format(CHANGE_MAP[change.action])
                 project['changes'].append(
                     {
                         'change': change,
@@ -64,15 +65,24 @@ def process_digest(interval=2):
                     }
                 )
             context['projects'].append(project)
-        print context
 
-    context['timespan'] = 'week'
+        # print context
 
-    fire_an_email(profile, context)
+        if interval == 2:
+            context['timespan'] = _('day')
+        else:
+            context['timespan'] = _('week')
+
+        context['site_title'] = settings.SITE_TITLE
+
+
+        fire_an_email(profile, context)
 
 
 def fire_an_email(profile, context):
+    print 'sending to {}'.format(profile)
     print render_to_string('mail/digest.html', context)
+    print context
     """
     context = {}
     context['timespan'] = 'week'

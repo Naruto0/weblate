@@ -1,8 +1,4 @@
-<!-- {% extends "mail/base.html" %} -->
-
 {% load i18n %}{% load translations %}
-
-{% block content %}
 
 <p>
 {% trans "Hi,"%}
@@ -12,8 +8,13 @@
 {% blocktrans %}There had been changes made to below translation projects on Weblate for last {{ timespan }}.{% endblocktrans %}
 </p>
 
-{% for change in changes %}
+{% for project in projects %}
+<h2>{{ project.name }}<h2>
 
-{% include "mail/footer.html" %}
+{% for change in project.changes %}
 
-{% endblock %}
+{% include change.template %}
+
+{% endfor %}
+
+{% endfor %}
