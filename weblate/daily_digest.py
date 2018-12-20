@@ -46,8 +46,9 @@ def process_digest(interval=2):
         # for each project in notification subscribed projects
         for sub_project in profile_sub_proj:
 
-            project = {'name': sub_project.name}
-            project['changes'] = []
+            project = {
+                'name': sub_project.name
+            }
 
             proj_changes = Change.objects.digest(
                 interval,
@@ -56,14 +57,26 @@ def process_digest(interval=2):
                 profile.user_id
             )
 
+            changes = []
+
             for change in proj_changes:
+                if change.target:
+                    target = change.target
+                else:
+                    target = None
+                # if change.old:
+                #     old = change.old
+                # else:
+                #     old = None
                 template = 'mail/digest_{}.html'.format(CHANGE_MAP[change.action])
-                project['changes'].append(
-                    {
-                        'change': change,
-                        'template': template
-                    }
-                )
+                changes.append({
+                    'change': change,
+                    'template': template,
+                    'target': target,
+                    # 'old': old
+                })
+            project['changes'] = changes
+
             context['projects'].append(project)
 
         # print context
@@ -79,8 +92,9 @@ def process_digest(interval=2):
         fire_an_email(profile, context)
 
 
+
 def fire_an_email(profile, context):
-    print 'sending to {}'.format(profile)
+    #print 'sending to {}'.format(profile)
     print render_to_string('mail/digest.html', context)
     print context
     """

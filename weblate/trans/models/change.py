@@ -143,7 +143,7 @@ class ChangeQuerySet(models.QuerySet):
         if interval == 2:
             days = 1
         elif interval == 3:
-            days = 7
+            days = 29
         start = timezone.now() - timezone.timedelta(days=days + 1)
         end = timezone.now() - timezone.timedelta(days=1)
         return self.filter(
