@@ -489,24 +489,25 @@ if not HAVE_SYSLOG:
     del LOGGING["handlers"]["syslog"]
 
 # List of machine translations
-# MT_SERVICES = (
-#     'weblate.machinery.apertium.ApertiumAPYTranslation',
-#     'weblate.machinery.baidu.BaiduTranslation',
-#     'weblate.machinery.deepl.DeepLTranslation',
-#     'weblate.machinery.glosbe.GlosbeTranslation',
-#     'weblate.machinery.google.GoogleTranslation',
-#     'weblate.machinery.microsoft.MicrosoftCognitiveTranslation',
-#     'weblate.machinery.microsoftterminology.MicrosoftTerminologyService',
-#     'weblate.machinery.mymemory.MyMemoryTranslation',
-#     'weblate.machinery.netease.NeteaseSightTranslation',
-#     'weblate.machinery.tmserver.AmagamaTranslation',
-#     'weblate.machinery.tmserver.TMServerTranslation',
-#     'weblate.machinery.yandex.YandexTranslation',
-#     'weblate.machinery.weblatetm.WeblateTranslation',
-#     'weblate.machinery.saptranslationhub.SAPTranslationHub',
-#     'weblate.machinery.youdao.YoudaoTranslation',
-#     'weblate.memory.machine.WeblateMemory',
-# )
+MT_SERVICES = (
+    #     'weblate.machinery.apertium.ApertiumAPYTranslation',
+    #     'weblate.machinery.baidu.BaiduTranslation',
+    #     'weblate.machinery.deepl.DeepLTranslation',
+    #     'weblate.machinery.glosbe.GlosbeTranslation',
+    #     'weblate.machinery.google.GoogleTranslation',
+    "weblate.machinery.google.GoogleTranslationAdvanced",
+    #     'weblate.machinery.microsoft.MicrosoftCognitiveTranslation',
+    #     'weblate.machinery.microsoftterminology.MicrosoftTerminologyService',
+    #     'weblate.machinery.mymemory.MyMemoryTranslation',
+    #     'weblate.machinery.netease.NeteaseSightTranslation',
+    #     'weblate.machinery.tmserver.AmagamaTranslation',
+    #     'weblate.machinery.tmserver.TMServerTranslation',
+    #     'weblate.machinery.yandex.YandexTranslation',
+    #     'weblate.machinery.weblatetm.WeblateTranslation',
+    #     'weblate.machinery.saptranslationhub.SAPTranslationHub',
+    #     'weblate.machinery.youdao.YoudaoTranslation',
+    #     'weblate.memory.machine.WeblateMemory',
+)
 
 # Machine translation API keys
 
@@ -529,8 +530,12 @@ MT_MYMEMORY_EMAIL = None
 MT_MYMEMORY_USER = None
 MT_MYMEMORY_KEY = None
 
-# Google API key for Google Translate API
+# Google API key for Google Translate API v2
 MT_GOOGLE_KEY = None
+
+# Google Translate API3 (Advanced) credentials and project id
+MT_GOOGLE_CREDENTIALS = None
+MT_GOOGLE_PROJECT = None
 
 # Baidu app key and secret
 MT_BAIDU_ID = None
