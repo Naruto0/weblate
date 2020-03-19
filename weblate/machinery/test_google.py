@@ -1,9 +1,14 @@
+from http.client import HTTPConnection
+from unittest import mock
+
 import responses
 from django.test import TestCase
 from django.test.utils import override_settings
 
 from weblate.checks.tests.test_checks import MockUnit
 from weblate.machinery.google import GoogleTranslationAdvanced
+
+HTTPConnection.debuglevel = 2
 
 
 class MachineTranslationTest(TestCase):
@@ -34,6 +39,10 @@ class MachineTranslationTest(TestCase):
     @override_settings(
         MT_GOOGLE_CREDENTIALS="/home/filip/credentials/Translating-c6687319a486.json",
         MT_GOOGLE_PROJECT="translating-271108",
+    )
+    @mock.patch(
+        "weblate.machinery.google.GoogleTranslationAdvanced.download_languages",
+        return_value=["en", "cs"],
     )
     @responses.activate
     def test_google_translate_advanced(self):
