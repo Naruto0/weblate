@@ -24,6 +24,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APITestCase
 
 from weblate.auth.models import Group, Role, User
+from weblate.lang.models import Language
 from weblate.screenshots.models import Screenshot
 from weblate.trans.models import (
     Change,
@@ -54,6 +55,7 @@ class APIBaseTest(APITestCase, RepoTestMixin):
         immediate_on_commit_leave(cls)
 
     def setUp(self):
+        Language.objects.flush_object_cache()
         self.clone_test_repos()
         self.component = self.create_component()
         self.translation_kwargs = {
@@ -926,6 +928,29 @@ class ProjectAPITest(APIBaseTest):
         )
         self.assertEqual(response.data["push"], "https://github.com/example/push.git")
 
+    def test_create_component_no_push(self):
+        repo_url = self.format_local_path(self.git_repo_path)
+        response = self.do_request(
+            "api:project-components",
+            self.project_kwargs,
+            method="post",
+            code=201,
+            superuser=True,
+            request={
+                "name": "API project",
+                "slug": "api-project",
+                "repo": repo_url,
+                "filemask": "po/*.po",
+                "file_format": "po",
+            },
+        )
+        self.assertEqual(Component.objects.count(), 2)
+        self.assertEqual(
+            Component.objects.get(slug="api-project", project__slug="test").repo,
+            repo_url,
+        )
+        self.assertEqual(response.data["repo"], repo_url)
+
 
 class ComponentAPITest(APIBaseTest):
     def setUp(self):
@@ -1077,6 +1102,11 @@ class LanguageAPITest(APIBaseTest):
             reverse("api:language-detail", kwargs={"code": "cs"})
         )
         self.assertEqual(response.data["name"], "Czech")
+        # Check plural exists
+        self.assertEqual(response.data["plural"]["type"], 2)
+        self.assertEqual(response.data["plural"]["number"], 3)
+        # Check for aliases
+        self.assertEqual(len(response.data["aliases"]), 2)
 
 
 class TranslationAPITest(APIBaseTest):
@@ -1251,25 +1281,23 @@ class TranslationAPITest(APIBaseTest):
         )
 
     def test_statistics(self):
-        self.maxDiff = None
         self.do_request(
             "api:translation-statistics",
             self.translation_kwargs,
             data={
-                "last_author": None,
-                "code": "cs",
                 "failing_percent": 0.0,
-                "url": "http://example.com/engage/test/cs/",
                 "translated_percent": 0.0,
                 "total_words": 15,
                 "failing": 0,
                 "translated_words": 0,
-                "url_translate": "http://example.com/projects/test/test/cs/",
                 "fuzzy_percent": 0.0,
                 "translated": 0,
+                "translated_words_percent": 0.0,
+                "translated_chars": 0,
+                "translated_chars_percent": 0.0,
+                "total_chars": 139,
                 "fuzzy": 0,
                 "total": 4,
-                "name": "Czech",
                 "recent_changes": 0,
             },
             skip=("last_change",),
@@ -1479,6 +1507,13 @@ class MetricsAPITest(APIBaseTest):
     def test_forbidden(self):
         response = self.client.get(reverse("api:metrics"))
         self.assertEqual(response.data["detail"].code, "not_authenticated")
+
+    def test_ratelimit(self):
+        self.authenticate()
+        response = self.client.get(reverse("api:metrics"), HTTP_REMOTE_ADDR="127.0.0.2")
+        current = int(response["X-RateLimit-Remaining"])
+        response = self.client.get(reverse("api:metrics"), HTTP_REMOTE_ADDR="127.0.0.2")
+        self.assertEqual(current - 1, int(response["X-RateLimit-Remaining"]))
 
 
 class ComponentListAPITest(APIBaseTest):

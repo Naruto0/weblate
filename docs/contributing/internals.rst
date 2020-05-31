@@ -14,14 +14,14 @@ Directory structure
 
 Quick overview of directory structure of Weblate main repository:
 
-``doc``
+``docs``
    Source code for this documentation, built using `Sphinx <https://www.sphinx-doc.org/>`_.
 ``dev-docker``
    Docker code to run development server, see :ref:`dev-docker`.
 ``weblate``
    Source code of Weblate as a `Django <https://www.djangoproject.com/>`_ application, see :ref:`internals`.
 ``weblate/static``
-   Client files (CSS, Javascript and images).
+   Client files (CSS, Javascript and images), see :doc:`frontend`.
 
 Modules
 -------
@@ -48,6 +48,14 @@ Weblate consists of several Django applications (some optional, see
 ``billing``
 
     The optional :ref:`billing` module.
+
+``checks``
+
+    Translation string :ref:`checks` module.
+
+``fonts``
+
+    Font rendering checks module.
 
 ``formats``
 
@@ -76,10 +84,6 @@ Weblate consists of several Django applications (some optional, see
 ``memory``
 
     Built in translation memory, see :ref:`translation-memory`.
-
-``permissions``
-
-    Obsolete.
 
 ``screenshots``
 

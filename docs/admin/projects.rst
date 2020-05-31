@@ -192,10 +192,22 @@ Source language
 Language used for source strings in all components. Change this if you are
 translating from something else than English.
 
-.. note::
+.. hint::
 
-    Most of the fields can be edited by project owners or managers, in the
-    Weblate interface.
+   In case you are translating bilingual files from English, but want to be
+   able to do fixes in the English translation as well, you might want to
+   choose :guilabel:`English (Developer)` as a source language. To avoid
+   conflict between name of the source language and existing translation.
+
+   For monolingual translations, you can use intermediate translation in this
+   case.
+
+.. seealso::
+
+   :ref:`component-intermediate`,
+   :ref:`source-quality-gateway`,
+   :ref:`bimono`,
+   :ref:`languages`
 
 .. _component:
 
@@ -275,8 +287,9 @@ VCS repository used to pull changes.
 Repository push URL
 +++++++++++++++++++
 
-Repository URL used for pushing. This is completely optional and push
-support is turned off when this is empty.
+Repository URL used for pushing. This setting is used only for :ref:`vcs-git`
+and :ref:`vcs-mercurial` and push support is turned off for these when this is
+empty.
 
 .. seealso::
 
@@ -315,6 +328,18 @@ Repository branch
 
 Which branch to checkout from the VCS, and where to look for translations.
 
+.. _component-push_branch:
+
+Push branch
++++++++++++
+
+Branch for pushing changes, leave empty to use :ref:`component-branch`.
+
+.. note::
+
+   This is currently only supported for Git and GitHub, it is ignored for other
+   VCS integrations.
+
 .. _component-filemask:
 
 File mask
@@ -331,6 +356,11 @@ For example ``po/*.po`` or ``locale/*/LC_MESSAGES/django.po``.
 In case your filename contains special characters such as ``[``, ``]``, these need
 to be escaped as ``[[]`` or ``[]]``.
 
+.. seealso::
+
+   :ref:`bimono`,
+   :ref:`faq-duplicate-files`
+
 .. _component-template:
 
 Monolingual base language file
@@ -340,7 +370,8 @@ Base file containing string definitions for :ref:`monolingual`.
 
 .. seealso::
 
-   :ref:`bimono`
+   :ref:`bimono`,
+   :ref:`faq-duplicate-files`
 
 .. _component-edit_template:
 
@@ -360,11 +391,14 @@ strings.
 
 When set, the source translation is based on this file, but all others are
 based on :ref:`component-template`. In case the string is not translated in
-source translation, translating to other languages is prohibited.
+source translation, translating to other languages is prohibited. This provides
+:ref:`source-quality-gateway`.
 
 .. seealso::
 
-   :ref:`bimono`
+   :ref:`source-quality-gateway`,
+   :ref:`bimono`,
+   :ref:`faq-duplicate-files`
 
 .. _component-new_base:
 
@@ -373,6 +407,11 @@ Template for new translations
 
 Base file used to generate new translations, e.g. ``.pot`` file with gettext,
 see :ref:`new-translations` for more info.
+
+.. seealso::
+
+   :ref:`bimono`,
+   :ref:`faq-duplicate-files`
 
 .. _component-file_format:
 
@@ -532,18 +571,34 @@ this period. The Default value can be changed in
 Language filter
 +++++++++++++++
 
-Regular expression used to filter the translation when scanning for
-filemask. This can be used to limit the list of languages managed by Weblate
-(e.g. ``^(cs|de|es)$`` will include only these languages. Please note
-that you need to list language codes as they appear in the filename.
+Regular expression used to filter the translation when scanning for filemask.
+This can be used to limit the list of languages managed by Weblate.
 
-.. _component-shaping_regex:
+.. note::
 
-Shapings regular expression
+    You need to list language codes as they appear in the filename.
+
+Some examples of filtering:
+
++-------------------------------+-----------------------+
+| Filter description            | Regular expression    |
++===============================+=======================+
+| Selected languages only       | ``^(cs|de|es)$``      |
++-------------------------------+-----------------------+
+| Exclude languages             | ``^(?!(it|fr)$).+$``  |
++-------------------------------+-----------------------+
+| Exclude non language files    | ``^(?!(blank)$).+$``  |
++-------------------------------+-----------------------+
+| Include all files (default)   | ``^[^.]+$``           |
++-------------------------------+-----------------------+
+
+.. _component-variant_regex:
+
+Variants regular expression
 +++++++++++++++++++++++++++
 
-Regular expression used to determine the shapings of a string, see
-:ref:`shapings`.
+Regular expression used to determine the variants of a string, see
+:ref:`variants`.
 
 .. note::
 

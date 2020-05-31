@@ -49,11 +49,11 @@ The following examples assume you have a working Docker environment, with
         If :envvar:`WEBLATE_ADMIN_PASSWORD` is not set, the admin user is created with
         a random password shown on first startup.
 
-        Append ',localhost' to :envvar:`WEBLATE_ALLOWED_HOSTS` to be able to access locally for testing.
+        Append ``,localhost`` to :envvar:`WEBLATE_ALLOWED_HOSTS` to be able to
+        access locally for testing.
 
-        You may also need to edit the *docker-compose.yml* file and change the
-        default port from 80 if you already have a web server running on your
-        local machine.
+        The provided example makes Weblate listen on port 80, edit the port
+        mapping in the :file:`docker-compose-override.yml` file to change it.
 
 3. Start Weblate containers:
 
@@ -72,7 +72,7 @@ Enjoy your Weblate deployment, it's accessible on port 80 of the ``weblate`` con
 .. versionchanged:: 3.7.1-6
 
    In July 2019 (starting with the 3.7.1-6 tag), the containers is not running
-   as a root user. This has lead to changed exposed port from 80 to 8080.
+   as a root user. This has changed the exposed port from 80 to 8080.
 
 .. seealso:: :ref:`invoke-manage`
 
@@ -318,6 +318,19 @@ Generic settings
         environment:
           WEBLATE_REGISTRATION_OPEN: 0
 
+.. envvar:: WEBLATE_REGISTRATION_ALLOW_BACKENDS
+
+   Configure which authentication methods can be used to create new account via
+   :setting:`REGISTRATION_ALLOW_BACKENDS`.
+
+    **Example:**
+
+    .. code-block:: yaml
+
+        environment:
+          WEBLATE_REGISTRATION_OPEN: 0
+          WEBLATE_REGISTRATION_ALLOW_BACKENDS: azuread-oauth2,azuread-tenant-oauth2
+
 .. envvar:: WEBLATE_TIME_ZONE
 
     Configures the used time zone in Weblate, see :std:setting:`django:TIME_ZONE`.
@@ -447,6 +460,10 @@ Generic settings
 
     Configures the language simplification policy, see :setting:`SIMPLIFY_LANGUAGES`.
 
+.. envvar:: WEBLATE_DEFAULT_ACCESS_CONTROL
+
+    Configures the default access control for project, see :setting:`DEFAULT_ACCESS_CONTROL`.
+
 .. envvar:: WEBLATE_AKISMET_API_KEY
 
     Configures the Akismet API key, see :setting:`AKISMET_API_KEY`.
@@ -462,6 +479,11 @@ Generic settings
 .. envvar:: WEBLATE_URL_PREFIX
 
    Configures URL prefix where Weblate is running, see :setting:`URL_PREFIX`.
+
+.. envvar:: WEBLATE_SILENCED_SYSTEM_CHECKS
+
+   Configures checks which you do not want to be displayed, see
+   :setting:`django:SILENCED_SYSTEM_CHECKS`.
 
 
 Machine translation settings
@@ -491,6 +513,14 @@ Machine translation settings
 .. envvar:: WEBLATE_MT_MICROSOFT_COGNITIVE_KEY
 
     Enables :ref:`ms-cognitive-translate` and sets :setting:`MT_MICROSOFT_COGNITIVE_KEY`
+
+.. envvar:: WEBLATE_MT_MICROSOFT_ENDPOINT_URL
+
+    Enables :ref:`ms-cognitive-translate` and sets :setting:`MT_MICROSOFT_ENDPOINT_URL`
+
+.. envvar:: WEBLATE_MT_MICROSOFT_BASE_URL
+
+    Enables :ref:`ms-cognitive-translate` and sets :setting:`MT_MICROSOFT_BASE_URL`
 
 .. envvar:: WEBLATE_MT_MYMEMORY_ENABLED
 
@@ -625,6 +655,8 @@ Google
 
 .. envvar:: WEBLATE_SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
 .. envvar:: WEBLATE_SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
+.. envvar:: WEBLATE_SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS
+.. envvar:: WEBLATE_SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_EMAILS
 
     Enables :ref:`google_auth`.
 
@@ -726,6 +758,17 @@ both Weblate and PostgreSQL containers.
 
    Configure how PostgreSQL handles SSL in connection to the server, for possible choices see
    `SSL Mode Descriptions <https://www.postgresql.org/docs/11/libpq-ssl.html#LIBPQ-SSL-SSLMODE-STATEMENTS>`_
+
+
+Database backup settings
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. seealso::
+    :ref:`backup-dumps`
+
+.. envvar:: WEBLATE_DATABASE_BACKUP
+
+    Configures the daily database dump using :setting:`DATABASE_BACKUP`. Defaults to ``plain``.
 
 
 Caching server setup
@@ -841,6 +884,10 @@ To enable support for Sentry, set following:
 .. envvar:: SENTRY_DSN
 
     Your Sentry DSN.
+
+.. envvar:: SENTRY_ENVIRONMENT
+
+    Your Sentry Environment (optional).
 
 Changing enabled apps, checks, addons or autofixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

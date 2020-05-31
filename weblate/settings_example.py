@@ -36,7 +36,7 @@ MANAGERS = ADMINS
 
 DATABASES = {
     "default": {
-        # Use 'postgresql' or 'mysql'.
+        # Use "postgresql" or "mysql".
         "ENGINE": "django.db.backends.postgresql",
         # Database name.
         "NAME": "weblate",
@@ -52,13 +52,13 @@ DATABASES = {
         "OPTIONS": {
             # In case of using an older MySQL server,
             # which has MyISAM as a default storage
-            # 'init_command': 'SET storage_engine=INNODB',
+            # "init_command": "SET storage_engine=INNODB",
             # Uncomment for MySQL older than 5.7:
-            # 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            # "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
             # Set emoji capable charset for MySQL:
-            # 'charset': 'utf8mb4',
+            # "charset": "utf8mb4",
             # Change connection timeout in case you get MySQL gone away error:
-            # 'connect_timeout': 28800,
+            # "connect_timeout": 28800,
         },
     }
 }
@@ -300,7 +300,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
+        "OPTIONS": {"min_length": 10},
     },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -319,19 +319,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Allow new user registrations
 REGISTRATION_OPEN = True
 
+# Shortcut for login required setting
+REQUIRE_LOGIN = False
+
 # Middleware
 MIDDLEWARE = [
     "weblate.middleware.ProxyMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "weblate.accounts.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "social_django.middleware.SocialAuthExceptionMiddleware",
     "weblate.accounts.middleware.RequireLoginMiddleware",
+    "weblate.api.middleware.ThrottlingMiddleware",
     "weblate.middleware.SecurityMiddleware",
 ]
 
@@ -444,13 +447,13 @@ LOGGING = {
             "facility": SysLogHandler.LOG_LOCAL2,
         },
         # Logging to a file
-        # 'logfile': {
-        #     'level':'DEBUG',
-        #     'class':'logging.handlers.RotatingFileHandler',
-        #     'filename': "/var/log/weblate/weblate.log",
-        #     'maxBytes': 100000,
-        #     'backupCount': 3,
-        #     'formatter': 'logfile',
+        # "logfile": {
+        #     "level":"DEBUG",
+        #     "class":"logging.handlers.RotatingFileHandler",
+        #     "filename": "/var/log/weblate/weblate.log",
+        #     "maxBytes": 100000,
+        #     "backupCount": 3,
+        #     "formatter": "logfile",
         # },
     },
     "loggers": {
@@ -505,6 +508,7 @@ if not HAVE_SYSLOG:
 #     "weblate.machinery.yandex.YandexTranslation",
 #     "weblate.machinery.saptranslationhub.SAPTranslationHub",
 #     "weblate.machinery.youdao.YoudaoTranslation",
+#     "weblate.machinery.weblatetm.WeblateTranslation",
 #     "weblate.memory.machine.WeblateMemory",
 # )
 
@@ -581,6 +585,7 @@ CSRF_USE_SESSIONS = True
 # Customize CSRF failure view
 CSRF_FAILURE_VIEW = "weblate.trans.views.error.csrf_failure"
 SESSION_COOKIE_SECURE = ENABLE_HTTPS
+SESSION_COOKIE_HTTPONLY = True
 # SSL redirect
 SECURE_SSL_REDIRECT = ENABLE_HTTPS
 # Sent referrrer only for same origin links
@@ -592,14 +597,19 @@ SESSION_COOKIE_AGE = 1209600
 # Increase allowed upload size
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50000000
 
+# Apply session coookie settings to language cookie as ewll
+LANGUAGE_COOKIE_SECURE = SESSION_COOKIE_SECURE
+LANGUAGE_COOKIE_HTTPONLY = SESSION_COOKIE_HTTPONLY
+LANGUAGE_COOKIE_AGE = SESSION_COOKIE_AGE * 10
+
 # Some security headers
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Optionally enable HSTS
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_PRELOAD = False
+SECURE_HSTS_SECONDS = 31536000 if ENABLE_HTTPS else 0
+SECURE_HSTS_PRELOAD = ENABLE_HTTPS
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 
 # URL of login
@@ -692,9 +702,12 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 #     "weblate.checks.markup.SafeHTMLCheck",
 #     "weblate.checks.placeholders.PlaceholderCheck",
 #     "weblate.checks.placeholders.RegexCheck",
+#     "weblate.checks.duplicate.DuplicateCheck",
 #     "weblate.checks.source.OptionalPluralCheck",
 #     "weblate.checks.source.EllipsisCheck",
 #     "weblate.checks.source.MultipleFailingCheck",
+#     "weblate.checks.source.LongUntranslatedCheck",
+#     "weblate.checks.format.MultipleUnnamedFormatsCheck",
 # )
 
 # List of automatic fixups
@@ -775,9 +788,10 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly"
-        # Use following with LOGIN_REQUIRED_URLS
-        # "rest_framework.permissions.IsAuthenticated"
+        # Require authentication for login required sites
+        "rest_framework.permissions.IsAuthenticated"
+        if REQUIRE_LOGIN
+        else "rest_framework.permissions.IsAuthenticatedOrReadOnly"
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.TokenAuthentication",
@@ -785,8 +799,8 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_THROTTLE_CLASSES": (
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
+        "weblate.api.throttling.UserRateThrottle",
+        "weblate.api.throttling.AnonRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {"anon": "100/day", "user": "5000/hour"},
     "DEFAULT_PAGINATION_CLASS": ("rest_framework.pagination.PageNumberPagination"),
@@ -795,10 +809,9 @@ REST_FRAMEWORK = {
     "UNAUTHENTICATED_USER": "weblate.auth.models.get_anonymous",
 }
 
-# Example for restricting access to logged in users
-# LOGIN_REQUIRED_URLS = (
-#     r"/(.*)$",
-# )
+# Require login for all URLs
+if REQUIRE_LOGIN:
+    LOGIN_REQUIRED_URLS = (r"/(.*)$",)
 
 # In such case you will want to include some of the exceptions
 # LOGIN_REQUIRED_URLS_EXCEPTIONS = (

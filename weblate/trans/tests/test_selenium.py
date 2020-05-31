@@ -52,7 +52,7 @@ from weblate.trans.tests.test_models import BaseLiveServerTestCase
 from weblate.trans.tests.test_views import RegistrationTestMixin
 from weblate.trans.tests.utils import (
     TempDirMixin,
-    create_billing,
+    create_test_billing,
     create_test_user,
     get_test_file,
 )
@@ -857,6 +857,32 @@ class SeleniumTests(BaseLiveServerTestCase, RegistrationTestMixin, TempDirMixin)
         self.click("Comments")
         self.screenshot("plurals.png")
 
+        # Test search dropdown
+        dropdown = self.driver.find_element_by_id("query-dropdown")
+        dropdown.click()
+        time.sleep(0.5)
+        self.screenshot("query-dropdown.png")
+        with self.wait_for_page_load():
+            self.click("Not translated strings")
+        self.driver.find_element_by_id("id_34a4642999e44a2b_0")
+
+        # Test sort dropdown
+        sort = self.driver.find_element_by_id("query-sort-dropdown")
+        sort.click()
+        time.sleep(0.5)
+        self.screenshot("query-sort.png")
+        with self.wait_for_page_load():
+            self.click("Position")
+
+        # Return to original unit
+        element = self.driver.find_element_by_id("id_q")
+        self.clear_field(element)
+        element.send_keys("'%(count)s word'")
+        self.screenshot("query-done-1.png")
+        with self.wait_for_page_load():
+            element.submit()
+        self.screenshot("query-done.png")
+
         # Trigger check
         self.clear_field(self.driver.find_element_by_id("id_a2a808c8ccbece08_0"))
         element = self.driver.find_element_by_id("id_a2a808c8ccbece08_1")
@@ -904,7 +930,7 @@ class SeleniumTests(BaseLiveServerTestCase, RegistrationTestMixin, TempDirMixin)
     def test_add_component(self):
         """Test user adding project and component."""
         user = self.do_login()
-        create_billing(user)
+        create_test_billing(user)
 
         # Open billing page
         self.click(htmlid="user-dropdown")
@@ -1118,14 +1144,14 @@ class SeleniumTests(BaseLiveServerTestCase, RegistrationTestMixin, TempDirMixin)
         with self.wait_for_page_load():
             self.click("Android")
 
-        # Edit shaping configuration
+        # Edit variant configuration
         self.click("Manage")
         with self.wait_for_page_load():
             self.click("Settings")
         self.click("Translation")
-        element = self.driver.find_element_by_id("id_shaping_regex")
+        element = self.driver.find_element_by_id("id_variant_regex")
         element.send_keys("_(short|min)$")
-        self.screenshot("shapings-settings.png")
+        self.screenshot("variants-settings.png")
         with self.wait_for_page_load():
             element.submit()
 
@@ -1136,7 +1162,7 @@ class SeleniumTests(BaseLiveServerTestCase, RegistrationTestMixin, TempDirMixin)
             self.click("English")
         self.screenshot("source-review.png")
 
-        # Find string with shapings
+        # Find string with variants
         self.click("Search")
         element = self.driver.find_element_by_id("id_q")
         element.send_keys("Monday")
@@ -1144,9 +1170,9 @@ class SeleniumTests(BaseLiveServerTestCase, RegistrationTestMixin, TempDirMixin)
             element.submit()
         self.screenshot("source-review-detail.png")
 
-        # Display shapings
-        self.click(htmlid="toggle-shapings")
-        self.screenshot("shapings-translate.png")
+        # Display variants
+        self.click(htmlid="toggle-variants")
+        self.screenshot("variants-translate.png")
 
         # Edit context
         self.click(htmlid="edit-context")

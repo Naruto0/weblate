@@ -21,17 +21,27 @@
 
 import random
 from hashlib import md5
+from typing import Dict
 
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.functional import cached_property
 from requests.exceptions import HTTPError
 
+from weblate.checks.utils import highlight_string
+from weblate.lang.models import Language
 from weblate.logger import LOGGER
 from weblate.utils.errors import report_error
 from weblate.utils.hash import calculate_hash
 from weblate.utils.requests import request
 from weblate.utils.search import Comparer
 from weblate.utils.site import get_site_url
+
+
+def get_machinery_language(language):
+    if language.code == "en_devel":
+        return Language.objects.english
+    return language
 
 
 class MachineTranslationError(Exception):
@@ -52,10 +62,10 @@ class MachineTranslation:
     name = "MT"
     max_score = 100
     rank_boost = 0
-    default_languages = []
     cache_translations = True
-    language_map = {}
+    language_map: Dict[str, str] = {}
     same_languages = False
+    do_cleanup = True
 
     @classmethod
     def get_rank(cls):
@@ -67,7 +77,6 @@ class MachineTranslation:
         self.rate_limit_cache = "{}-rate-limit".format(self.mtid)
         self.languages_cache = "{}-languages".format(self.mtid)
         self.comparer = Comparer()
-        self.supported_languages = None
         self.supported_languages_error = None
 
     def delete_cache(self):
@@ -125,6 +134,8 @@ class MachineTranslation:
 
     def map_language_code(self, code):
         """Map language code to service specific."""
+        if code == "en_devel":
+            code = "en"
         if code in self.language_map:
             return self.language_map[code]
         return code
@@ -138,34 +149,28 @@ class MachineTranslation:
         report_error(cause="Machinery error")
         LOGGER.error(message, self.name)
 
-    def get_supported_languages(self):
+    @cached_property
+    def supported_languages(self):
         """Return list of supported languages."""
-        if self.supported_languages is not None:
-            return
-
         # Try using list from cache
         languages = cache.get(self.languages_cache)
         if languages is not None:
-            self.supported_languages = languages
-            return
+            return languages
 
         if self.is_rate_limited():
-            self.supported_languages = []
-            return
+            return set()
 
         # Download
         try:
             languages = set(self.download_languages())
         except Exception as exc:
-            self.supported_languages = self.default_languages
             self.supported_languages_error = exc
             self.report_error("Failed to fetch languages from %s, using defaults")
-            return
+            return set()
 
         # Update cache
         cache.set(self.languages_cache, languages, 3600 * 48)
-
-        self.supported_languages = languages
+        return languages
 
     def is_supported(self, source, language):
         """Check whether given language combination is supported."""
@@ -202,10 +207,39 @@ class MachineTranslation:
             self.mtid, calculate_hash(source, language), calculate_hash(None, text)
         )
 
+    def cleanup_text(self, unit):
+        """Removes placeholder to avoid confusing the machine translation."""
+        text = unit.get_source_plurals()[0]
+        replacements = {}
+        if not self.do_cleanup:
+            return text, replacements
+
+        highlights = highlight_string(text, unit)
+        parts = []
+        start = 0
+        for h_start, h_end, h_text in highlights:
+            parts.append(text[start:h_start])
+            placeholder = f"[{h_start}]"
+            replacements[placeholder] = h_text
+            parts.append(placeholder)
+            start = h_end
+
+        parts.append(text[start:])
+
+        return "".join(parts), replacements
+
+    def uncleanup_results(self, replacements, results):
+        """Reverts replacements done by cleanup_text."""
+        keys = ["text", "source"]
+        for result in results:
+            for key in keys:
+                text = result[key]
+                for source, target in replacements.items():
+                    text = text.replace(source, target)
+                result[key] = text
+
     def translate(self, unit, user=None, search=None, language=None, source=None):
         """Return list of machine translations."""
-        self.get_supported_languages()
-
         # source and language are set only for recursive calls when
         # tweaking the language codes
         if source is None:
@@ -214,7 +248,11 @@ class MachineTranslation:
                 unit.translation.component.project.source_language
             )
 
-        text = search or unit.get_source_plurals()[0]
+        if search:
+            replacements = {}
+            text = search
+        else:
+            text, replacements = self.cleanup_text(unit)
 
         if (
             not text
@@ -253,6 +291,8 @@ class MachineTranslation:
                     source, language, text, unit, user, search=bool(search)
                 )
             )
+            if replacements:
+                self.uncleanup_results(replacements, result)
             if cache_key:
                 cache.set(cache_key, result, 7 * 86400)
             return result

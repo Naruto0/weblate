@@ -22,13 +22,19 @@
 import os
 import tempfile
 from copy import deepcopy
+from typing import Dict, Optional, Tuple, Type
 
 from django.conf import settings
 from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 from sentry_sdk import add_breadcrumb
 
+from weblate.langdata.countries import DEFAULT_LANGS
 from weblate.utils.hash import calculate_hash
+
+EXPAND_LANGS = {
+    code[:2]: "{}_{}".format(code[:2], code[3:].upper()) for code in DEFAULT_LANGS
+}
 
 
 class UnitNotFound(Exception):
@@ -157,16 +163,17 @@ class TranslationUnit:
 class TranslationFormat:
     """Generic object defining file format loader."""
 
-    name = ""
-    format_id = ""
-    monolingual = None
-    check_flags = ()
-    unit_class = TranslationUnit
-    autoload = ()
-    can_add_unit = True
-    language_format = "posix"
-    simple_filename = True
-    new_translation = None
+    name: str = ""
+    format_id: str = ""
+    monolingual: Optional[bool] = None
+    check_flags: Tuple[str, ...] = ()
+    unit_class: Type[TranslationUnit] = TranslationUnit
+    autoload: Tuple[str, ...] = ()
+    can_add_unit: bool = True
+    language_format: str = "posix"
+    simple_filename: bool = True
+    new_translation: Optional[str] = None
+    autoaddon: Dict[str, Dict[str, str]] = {}
 
     @classmethod
     def get_identifier(cls):
@@ -364,6 +371,16 @@ class TranslationFormat:
     @staticmethod
     def get_language_bcp(code):
         return code.replace("_", "-")
+
+    @staticmethod
+    def get_language_posix_long(code):
+        if code in EXPAND_LANGS:
+            return EXPAND_LANGS[code]
+        return code
+
+    @classmethod
+    def get_language_bcp_long(cls, code):
+        return cls.get_language_posix_long(code).replace("_", "-")
 
     @staticmethod
     def get_language_android(code):

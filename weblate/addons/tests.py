@@ -142,13 +142,16 @@ class IntegrationTest(ViewTestCase):
 
     def test_crash(self):
         addon = TestCrashAddon.create(self.component)
+        self.assertTrue(Addon.objects.filter(name=TestCrashAddon.name).exists())
         ADDONS[TestCrashAddon.get_identifier()] = TestCrashAddon
 
         with self.assertRaises(TestException):
             addon.post_update(self.component, "head")
 
-        with self.assertRaises(TestException):
-            self.component.update_branch()
+        # The crash should be handled here and addon uninstalled
+        self.component.update_branch()
+
+        self.assertFalse(Addon.objects.filter(name=TestCrashAddon.name).exists())
 
     def test_process_error(self):
         addon = TestAddon.create(self.component)
@@ -799,6 +802,36 @@ class GitSquashAddonTest(ViewTestCase):
         self.change_unit("Diky za pouzivani Weblate.", "Thank you for using Weblate.")
         self.component.commit_pending("test", None)
         self.assertEqual(self.component.repository.count_outgoing(), 3)
+
+    def test_commit_message(self):
+        commit_message = "Squashed commit message"
+        GitSquashAddon.create(
+            self.component,
+            configuration={"squash": "all", "commit_message": commit_message},
+        )
+
+        self.edit()
+
+        commit = self.component.repository.show(self.component.repository.last_revision)
+        self.assertIn(commit_message, commit)
+        self.assertEqual(self.component.repository.count_outgoing(), 1)
+
+    def test_append_trailers(self):
+        GitSquashAddon.create(
+            self.component, configuration={"squash": "all", "append_trailers": True}
+        )
+
+        self.edit()
+
+        commit = self.component.repository.show(self.component.repository.last_revision)
+
+        expected_trailers = (
+            "    Translation: Test/Test\n"
+            "    Translate-URL: http://example.com/projects/test/test/de/\n"
+            "    Translate-URL: http://example.com/projects/test/test/cs/\n"
+        )
+        self.assertIn(expected_trailers, commit)
+        self.assertEqual(self.component.repository.count_outgoing(), 1)
 
 
 class TestRemoval(FixtureTestCase):

@@ -21,8 +21,9 @@ from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Count
 from django.utils import timezone
+from django.utils.encoding import force_str
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext_lazy
 from jellyfish import damerau_levenshtein_distance
 
 from weblate.lang.models import Language
@@ -133,7 +134,11 @@ class ChangeQuerySet(models.QuerySet):
         authors = self.content()
         if date_range is not None:
             authors = authors.filter(timestamp__range=date_range)
-        return authors.values_list("author__email", "author__full_name")
+        return (
+            authors.values("author")
+            .annotate(change_count=Count("id"))
+            .values_list("author__email", "author__full_name", "change_count")
+        )
 
     def order(self):
         return self.order_by("-timestamp")
@@ -194,7 +199,7 @@ class Change(models.Model, UserDisplayMixin):
     ACTION_MOVE_COMPONENT = 43
     ACTION_NEW_STRING = 44
     ACTION_NEW_CONTRIBUTOR = 45
-    ACTION_MESSAGE = 46
+    ACTION_ANNOUNCEMENT = 46
     ACTION_ALERT = 47
     ACTION_ADDED_LANGUAGE = 48
     ACTION_REQUESTED_LANGUAGE = 49
@@ -298,7 +303,7 @@ class Change(models.Model, UserDisplayMixin):
         # Translators: Name of event in the history
         (ACTION_NEW_CONTRIBUTOR, gettext_lazy("New contributor")),
         # Translators: Name of event in the history
-        (ACTION_MESSAGE, gettext_lazy("New announcement")),
+        (ACTION_ANNOUNCEMENT, gettext_lazy("New announcement")),
         # Translators: Name of event in the history
         (ACTION_ALERT, gettext_lazy("New alert")),
         # Translators: Name of event in the history
@@ -316,6 +321,7 @@ class Change(models.Model, UserDisplayMixin):
         # Translators: Name of event in the history
         (ACTION_REPLACE_UPLOAD, gettext_lazy("Replaced file by upload")),
     )
+    ACTIONS_DICT = dict(ACTION_CHOICES)
 
     # Actions which can be reverted
     ACTIONS_REVERTABLE = {
@@ -376,6 +382,7 @@ class Change(models.Model, UserDisplayMixin):
         ACTION_SUGGESTION,
         ACTION_SUGGESTION_DELETE,
         ACTION_SUGGESTION_CLEANUP,
+        ACTION_BULK_EDIT,
         ACTION_NEW_UNIT,
         ACTION_DICTIONARY_NEW,
         ACTION_DICTIONARY_EDIT,
@@ -386,6 +393,12 @@ class Change(models.Model, UserDisplayMixin):
         ACTION_FAILED_MERGE,
         ACTION_FAILED_REBASE,
         ACTION_FAILED_PUSH,
+    }
+
+    PLURAL_ACTIONS = {
+        ACTION_NEW_STRING: ngettext_lazy(
+            "New string to translate", "New strings to translate"
+        ),
     }
 
     unit = models.ForeignKey("Unit", null=True, on_delete=models.deletion.CASCADE)
@@ -436,10 +449,8 @@ class Change(models.Model, UserDisplayMixin):
         index_together = [
             ("timestamp", "translation"),
         ]
-
-    def __init__(self, *args, **kwargs):
-        self.notify_state = {}
-        super().__init__(*args, **kwargs)
+        verbose_name = "history event"
+        verbose_name_plural = "history events"
 
     def __str__(self):
         return _("%(action)s at %(time)s on %(translation)s by %(user)s") % {
@@ -449,14 +460,29 @@ class Change(models.Model, UserDisplayMixin):
             "user": self.get_user_display(False),
         }
 
-    def is_merge_failure(self):
-        return self.action in self.ACTIONS_MERGE_FAILURE
+    def save(self, *args, **kwargs):
+        from weblate.accounts.tasks import notify_change
+
+        if self.unit:
+            self.translation = self.unit.translation
+        if self.translation:
+            self.component = self.translation.component
+            self.language = self.translation.language
+        if self.component:
+            self.project = self.component.project
+        if self.dictionary:
+            self.project = self.dictionary.project
+            self.language = self.dictionary.language
+        super().save(*args, **kwargs)
+        transaction.on_commit(lambda: notify_change.delay(self.pk))
 
     def get_absolute_url(self):
         """Return link either to unit or translation."""
         if self.unit is not None:
             return self.unit.get_absolute_url()
         if self.translation is not None:
+            if self.action == self.ACTION_NEW_STRING:
+                return self.translation.get_translate_url() + "?q=is:untranslated"
             return self.translation.get_absolute_url()
         if self.component is not None:
             return self.component.get_absolute_url()
@@ -465,6 +491,22 @@ class Change(models.Model, UserDisplayMixin):
         if self.project is not None:
             return self.project.get_absolute_url()
         return None
+
+    def __init__(self, *args, **kwargs):
+        self.notify_state = {}
+        super().__init__(*args, **kwargs)
+
+    @property
+    def plural_count(self):
+        return self.details.get("count", 1)
+
+    def get_action_display(self):
+        if self.action in self.PLURAL_ACTIONS:
+            return self.PLURAL_ACTIONS[self.action] % self.plural_count
+        return force_str(self.ACTIONS_DICT.get(self.action, self.action))
+
+    def is_merge_failure(self):
+        return self.action in self.ACTIONS_MERGE_FAILURE
 
     def can_revert(self):
         return (
@@ -484,9 +526,13 @@ class Change(models.Model, UserDisplayMixin):
             or self.action in self.ACTIONS_REVERTABLE
         )
 
-    def get_details_display(self):
+    def get_details_display(self):  # noqa: C901
         from weblate.utils.markdown import render_markdown
 
+        if self.action == self.ACTION_ANNOUNCEMENT:
+            return render_markdown(self.target)
+
+        # Following rendering relies on details present
         if not self.details:
             return ""
         user_actions = {
@@ -526,21 +572,9 @@ class Change(models.Model, UserDisplayMixin):
 
         return ""
 
-    def save(self, *args, **kwargs):
-        from weblate.accounts.tasks import notify_change
-
-        if self.unit:
-            self.translation = self.unit.translation
-        if self.translation:
-            self.component = self.translation.component
-            self.language = self.translation.language
-        if self.component:
-            self.project = self.component.project
-        if self.dictionary:
-            self.project = self.dictionary.project
-            self.language = self.dictionary.language
-        super().save(*args, **kwargs)
-        transaction.on_commit(lambda: notify_change.delay(self.pk))
-
     def get_distance(self):
-        return damerau_levenshtein_distance(self.old, self.target)
+        try:
+            return damerau_levenshtein_distance(self.old, self.target)
+        except MemoryError:
+            # Too long strings
+            return abs(len(self.old) - len(self.target))

@@ -91,6 +91,8 @@ DOC_LINKS = {
     "weblate.I031": ("admin/upgrade",),
     "weblate.C031": ("admin/upgrade",),
     "weblate.C032": ("admin/install",),
+    "weblate.W033": ("vcs",),
+    "weblate.E034": ("admin/install", "celery"),
 }
 
 
@@ -193,7 +195,15 @@ def check_celery(app_configs, **kwargs):
 
         result = ping.delay()
         try:
-            result.get(timeout=10, disable_sync_subtasks=False)
+            pong = result.get(timeout=10, disable_sync_subtasks=False)
+            # Check for outdated Celery running different version of configuration
+            if ping() != pong:
+                errors.append(
+                    weblate_check(
+                        "weblate.E034",
+                        "The Celery process is outdated, please restart it.",
+                    )
+                )
         except TimeoutError:
             errors.append(
                 weblate_check(
@@ -210,6 +220,7 @@ def check_celery(app_configs, **kwargs):
                     "CELERY_RESULT_BACKEND is probably not set.",
                 )
             )
+
     heartbeat = cache.get("celery_heartbeat")
     loaded = cache.get("celery_loaded")
     now = time.time()
@@ -375,6 +386,10 @@ def check_perms(app_configs=None, **kwargs):
     message = "The path {} is owned by different user, check your DATA_DIR settings."
     for dirpath, dirnames, filenames in os.walk(settings.DATA_DIR):
         for name in chain(dirnames, filenames):
+            # Skip toplevel lost+found dir, that one is typically owned by root
+            # on filesystem toplevel directory
+            if dirpath == settings.DATA_DIR and name == "lost+found":
+                continue
             path = os.path.join(dirpath, name)
             try:
                 stat = os.lstat(path)

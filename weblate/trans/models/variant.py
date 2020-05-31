@@ -17,20 +17,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from weblate.trans.management.commands import WeblateLangCommand
+
+from django.db import models
+
+from weblate.trans.fields import RegexField
 
 
-class Command(WeblateLangCommand):
-    help = "fixes flags for units"
+class Variant(models.Model):
+    component = models.ForeignKey("Component", on_delete=models.deletion.CASCADE)
+    variant_regex = RegexField(max_length=190)
+    key = models.CharField(max_length=190, db_index=True)
 
-    def handle(self, *args, **options):
-        for unit in self.iterate_units(*args, **options):
-            if unit.has_suggestion:
-                unit.update_has_suggestion()
-            if unit.has_comment:
-                unit.update_has_comment()
-            if unit.has_failing_check:
-                unit.update_has_failing_check()
+    class Meta:
+        unique_together = (("key", "component", "variant_regex"),)
+        verbose_name = "variant definition"
+        verbose_name_plural = "variant definitions"
 
-        for translation in self.get_translations(**options):
-            translation.invalidate_cache()
+    def __str__(self):
+        return "{}: {}".format(self.component, self.key)

@@ -298,6 +298,18 @@ Dumps userdata to a file for later use by :djadmin:`importuserdata`
 
    This comes in handy when migrating or merging Weblate instances.
 
+import_demo
+-----------
+
+.. django-admin:: import_demo
+
+.. versionadded:: 4.1
+
+Creates a demo project with components based on <https://github.com/WeblateOrg/demo>.
+
+This can be useful when developing Weblate.
+
+
 import_json
 -----------
 
@@ -558,14 +570,6 @@ To install :ref:`addon-weblate.gettext.customize` for all components:
 .. seealso::
 
    :ref:`addons`
-
-list_ignored_checks
--------------------
-
-.. django-admin:: list_ignored_checks
-
-Lists the most frequently ignored checks. This can be useful for tuning your setup,
-if users have to ignore too many false positive consistency checks.
 
 list_languages
 --------------

@@ -1,12 +1,59 @@
 Weblate 4.1
-------------
+-----------
 
 Not yet released.
+
+* Added support for creating new translations with included country code.
+* Added support for Laravel PHP files.
+* Added support for seaching source strings with screenshot.
+* Extended information available in the stats insights.
+* Improved search editing on translate pages.
+* Improve handling of concurrent repository updates.
+* Include source language in project creation form.
+* Include changes count in credits.
+* Fixed UI language selection in some cases.
+* Allow to whitelist registration methods with registrations closed.
+* Improved lookup of related terms in glossary.
+* Improved translation memory matches.
+* Group same machinery results.
+* Add direct link to edit screenshot from translate page.
+* Improved removal confirmation dialog.
+* Include templates in ZIP download.
+* Add support for Markdown and notification configuration in announcements.
+* Extended details in check listings.
+* Added support for new file formats: :ref:`html`, :ref:`odf`, :ref:`idml`, :ref:`winrc`, :ref:`ini`, :ref:`islu`, :ref:`gwt`.
+* Consistently use dismissed as state of dismissed checks.
+* Add support for configuring default addons to enable.
+* Fixed editor keyboard shortcut to dismiss checks.
+* Improved machine translation of strings with placeholders.
+* Show ghost translation for user languages to ease starting them.
+* Improved language code parsing.
+* Show translations in user language first in the list.
+* Renamed shapings to more generic name variants.
+* Added new quality checks: :ref:`check-unnamed-format`, :ref:`check-long-untranslated`, :ref:`check-duplicate`.
+* Reintroduced support for wiping translation memory.
+* Fixed option to ignore source checks.
+* Added support for configuring different branch for pushing changes.
+* API now reports rate limiting status in the HTTP headers.
+
+Weblate 4.0.4
+-------------
+
+Released on May 07th 2020.
+
+* Fixed testsuite execution on some Python 3.8 environments.
+* Typo fixes in the documentation.
+* Fixed creating components using API in some cases.
+* Fixed JavaScript errors breaking mobile navigation.
+* Fixed crash on displaying some checks.
+* Fixed screenshots listing.
+* Fixed monthly digest notifications.
+* Fixed intermediate translation behavior with units non existing in translation.
 
 Weblate 4.0.3
 --------------
 
-Not yet released.
+Released on May 02nd 2020.
 
 * Fixed possible crash in reports.
 * User mentions in comments are now case insensitive.

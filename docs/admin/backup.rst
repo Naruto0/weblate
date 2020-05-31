@@ -112,7 +112,8 @@ Depending on what you want to save, back up the type data Weblate stores in each
 
    In case you are doing manual backups, you might want to silent Weblate
    warning about lack of backups by adding ``weblate.I028`` to
-   :setting:`django:SILENCED_SYSTEM_CHECKS` in :file:`settings.py`:
+   :setting:`django:SILENCED_SYSTEM_CHECKS` in :file:`settings.py` or
+   :envvar:`WEBLATE_SILENCED_SYSTEM_CHECKS` for Docker.
 
    .. code-block:: python
 
@@ -180,7 +181,7 @@ Weblate dumps various data here, and you can include these files for more comple
 backups. The files are updated daily (requires a running Celery beats server, see
 :ref:`celery`). Currently, this includes:
 
-* Weblate settings as :file:`settings.py`.
+* Weblate settings as :file:`settings.py` (there is also expanded version in :file:`settings-expanded.py`).
 * PostgreSQL database backup as :file:`database.sql`.
 
 The database backup are by default saved as plain text, but they can also be compressed

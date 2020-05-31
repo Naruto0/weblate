@@ -55,7 +55,7 @@ from weblate.trans.validators import validate_check_flags
 from weblate.utils.errors import report_error
 from weblate.utils.render import render_template
 from weblate.utils.site import get_site_url
-from weblate.utils.stats import TranslationStats
+from weblate.utils.stats import GhostStats, TranslationStats
 
 
 class TranslationManager(models.Manager):
@@ -122,6 +122,8 @@ class Translation(models.Model, URLMixin, LoggerMixin):
     class Meta:
         app_label = "trans"
         unique_together = ("component", "language")
+        verbose_name = "translation"
+        verbose_name_plural = "translations"
 
     def __str__(self):
         return "{0} — {1}".format(self.component, self.language)
@@ -132,7 +134,7 @@ class Translation(models.Model, URLMixin, LoggerMixin):
         self.stats = TranslationStats(self)
         self.addon_commit_files = []
         self.commit_template = ""
-        self.was_new = False
+        self.was_new = 0
         self.reason = ""
 
     def get_badges(self):
@@ -201,8 +203,9 @@ class Translation(models.Model, URLMixin, LoggerMixin):
                 action=Change.ACTION_NEW_STRING,
                 user=request.user if request else None,
                 author=request.user if request else None,
+                details={"count": self.was_new},
             )
-            self.was_new = False
+            self.was_new = 0
 
     def get_reverse_url_kwargs(self):
         """Return kwargs for URL reversing."""
@@ -287,14 +290,12 @@ class Translation(models.Model, URLMixin, LoggerMixin):
         # - newly not translated
         # - newly fuzzy
         # - source string changed
-        self.was_new = self.was_new or (
-            newunit.state < STATE_TRANSLATED
-            and (
-                newunit.state != newunit.old_unit.state
-                or is_new
-                or newunit.source != newunit.old_unit.source
-            )
-        )
+        if newunit.state < STATE_TRANSLATED and (
+            newunit.state != newunit.old_unit.state
+            or is_new
+            or newunit.source != newunit.old_unit.source
+        ):
+            self.was_new += 1
 
         # Store current unit ID
         updated[id_hash] = newunit
@@ -338,7 +339,7 @@ class Translation(models.Model, URLMixin, LoggerMixin):
                 self.save(update_fields=["plural"])
 
             # Was there change?
-            self.was_new = False
+            self.was_new = 0
 
             # Select all current units for update
             dbunits = {unit.id_hash: unit for unit in self.unit_set.select_for_update()}
@@ -357,6 +358,9 @@ class Translation(models.Model, URLMixin, LoggerMixin):
                         )
                         if translated_unit and not created:
                             unit = translated_unit
+                        else:
+                            # Patch unit to have matching source
+                            unit.source = translated_unit.source
                     except UnitNotFound:
                         pass
 
@@ -681,88 +685,67 @@ class Translation(models.Model, URLMixin, LoggerMixin):
         # save translation changes
         store.save()
 
-    def get_source_checks(self):
-        """Return list of failing source checks on current component."""
-        result = TranslationChecklist()
-        result.add(self.stats, "all", "success")
-
-        # All checks
-        result.add_if(self.stats, "allchecks", "danger")
-
-        # Process specific checks
-        for check in CHECKS:
-            check_obj = CHECKS[check]
-            if not check_obj.source:
-                continue
-            result.add_if(self.stats, check_obj.url_id, check_obj.severity)
-
-        # Grab comments
-        result.add_if(self.stats, "comments", "info")
-
-        return result
-
     @cached_property
     def enable_review(self):
         project = self.component.project
         return project.source_review if self.is_source else project.translation_review
 
-    def get_target_checks(self):
-        """Return list of failing checks on current component."""
+    @cached_property
+    def list_translation_checks(self):
+        """Return list of failing checks on current translation."""
         result = TranslationChecklist()
 
         # All strings
         result.add(self.stats, "all", "success")
-        result.add_if(self.stats, "approved", "success")
 
-        # Count of translated strings
-        result.add_if(self.stats, "translated", "success")
+        if not self.is_readonly:
+            if self.enable_review:
+                result.add_if(self.stats, "approved", "success")
 
-        # To approve
-        if self.enable_review:
-            result.add_if(self.stats, "unapproved", "warning")
+            # Count of translated strings
+            result.add_if(self.stats, "translated", "success")
 
-        # Approved with suggestions
-        result.add_if(self.stats, "approved_suggestions", "danger")
+            # To approve
+            if self.enable_review:
+                result.add_if(self.stats, "unapproved", "warning")
 
-        # Untranslated strings
-        result.add_if(self.stats, "todo", "danger")
+                # Approved with suggestions
+                result.add_if(self.stats, "approved_suggestions", "danger")
 
-        # Not translated strings
-        result.add_if(self.stats, "nottranslated", "danger")
+            # Untranslated strings
+            result.add_if(self.stats, "todo", "danger")
 
-        # Fuzzy strings
-        result.add_if(self.stats, "fuzzy", "danger")
+            # Not translated strings
+            result.add_if(self.stats, "nottranslated", "danger")
 
-        # Translations with suggestions
-        result.add_if(self.stats, "suggestions", "info")
-        result.add_if(self.stats, "nosuggestions", "info")
+            # Fuzzy strings
+            result.add_if(self.stats, "fuzzy", "danger")
+
+            # Translations with suggestions
+            result.add_if(self.stats, "suggestions", "info")
+            result.add_if(self.stats, "nosuggestions", "info")
 
         # All checks
         result.add_if(self.stats, "allchecks", "danger")
 
+        # Translated strings with checks
+        if not self.is_source:
+            result.add_if(self.stats, "translated_checks", "danger")
+
         # Process specific checks
         for check in CHECKS:
             check_obj = CHECKS[check]
-            if not check_obj.target:
-                continue
             result.add_if(self.stats, check_obj.url_id, "warning")
 
         # Grab comments
         result.add_if(self.stats, "comments", "info")
 
-        return result
-
-    @cached_property
-    def list_translation_checks(self):
-        """Return list of failing checks on current translation."""
-        if self.is_source:
-            result = self.get_source_checks()
-        else:
-            result = self.get_target_checks()
-
         # Include labels
-        for label in self.component.project.label_set.all():
-            result.add_if(self.stats, "label:{}".format(label.name), "info")
+        labels = self.component.project.label_set.order_by("name")
+        if labels:
+            for label in labels:
+                result.add_if(self.stats, "label:{}".format(label.name), "info")
+            result.add_if(self.stats, "unlabeled", "info")
 
         return result
 
@@ -1011,10 +994,10 @@ class Translation(models.Model, URLMixin, LoggerMixin):
             if orig_user:
                 request.user = orig_user
 
-    def invalidate_cache(self):
+    def invalidate_cache(self, recurse=True):
         """Invalidate any cached stats."""
         # Invalidate summary stats
-        transaction.on_commit(self.stats.invalidate)
+        transaction.on_commit(lambda: self.stats.invalidate(recurse))
 
     @property
     def keys_cache_key(self):
@@ -1029,21 +1012,26 @@ class Translation(models.Model, URLMixin, LoggerMixin):
 
     def get_stats(self):
         """Return stats dictionary."""
+        stats = self.stats
         return {
             "code": self.language.code,
             "name": self.language.name,
-            "total": self.stats.all,
-            "total_words": self.stats.all_words,
-            "last_change": self.stats.last_changed,
+            "total": stats.all,
+            "total_words": stats.all_words,
+            "last_change": stats.last_changed,
             "last_author": self.get_last_author(),
-            "recent_changes": self.stats.recent_changes,
-            "translated": self.stats.translated,
-            "translated_words": self.stats.translated_words,
-            "translated_percent": self.stats.translated_percent,
-            "fuzzy": self.stats.fuzzy,
-            "fuzzy_percent": self.stats.fuzzy_percent,
-            "failing": self.stats.allchecks,
-            "failing_percent": self.stats.allchecks_percent,
+            "recent_changes": stats.recent_changes,
+            "translated": stats.translated,
+            "translated_words": stats.translated_words,
+            "translated_percent": stats.translated_percent,
+            "translated_words_percent": stats.translated_words_percent,
+            "translated_chars": stats.translated_chars,
+            "translated_chars_percent": stats.translated_chars_percent,
+            "total_chars": stats.all_chars,
+            "fuzzy": stats.fuzzy,
+            "fuzzy_percent": stats.fuzzy_percent,
+            "failing": stats.allchecks,
+            "failing_percent": stats.allchecks_percent,
             "url": self.get_share_url(),
             "url_translate": get_site_url(self.get_absolute_url()),
         }
@@ -1089,3 +1077,22 @@ class Translation(models.Model, URLMixin, LoggerMixin):
             self.component.create_translations(request=request)
             self.__git_commit(request.user.get_author_name(), timezone.now())
             self.component.push_if_needed()
+
+
+class GhostTranslation:
+    """Ghost translation object used to show missing translations."""
+
+    is_ghost = True
+
+    def __init__(self, component, language):
+        self.component = component
+        self.language = language
+        self.stats = GhostStats(component.source_translation.stats)
+        self.pk = self.stats.pk
+        self.is_source = False
+
+    def __str__(self):
+        return "{0} — {1}".format(self.component, self.language)
+
+    def get_absolute_url(self):
+        return None

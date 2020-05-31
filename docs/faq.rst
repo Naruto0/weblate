@@ -371,6 +371,7 @@ the :command:`msgmerge` tool:
 In case you want to do the update automatically, you can install
 addon :ref:`addon-weblate.gettext.msgmerge`.
 
+
 Troubleshooting
 +++++++++++++++
 
@@ -412,6 +413,19 @@ It needs to contain all hostnames you want to access on your Weblate. For exampl
 
     :ref:`production-hosts`
 
+.. _faq-duplicate-files:
+
+What does mean "There are more files for the single language (en)"?
+-------------------------------------------------------------------
+
+This typically happens when you have translation file for source language.
+Weblate keeps track of source strings and reserves source language for this.
+The additional file for same language is not processed.
+
+* In case the translation to the source language is desired, please change the :ref:`project-source_language` in the project settings.
+* In case the translation file for the source language is not needed, please remove it from the repository.
+* In case the translation file for the source language is needed, but shoud be ignored by Weblate, please adjust the :ref:`component-language_regex` to exclude it.
+
 Features
 ++++++++
 
@@ -447,7 +461,10 @@ the standard VCS tools you use for code.
 Additionally, when the translation file format supports it, the file headers are
 updated to include the translator's name.
 
-.. seealso:: :djadmin:`list_translators`
+.. seealso::
+
+   :djadmin:`list_translators`,
+   :doc:`../devel/reporting`
 
 Why does Weblate force showing all PO files in a single tree?
 -------------------------------------------------------------

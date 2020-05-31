@@ -167,8 +167,11 @@ def check_edit_approved(user, permission, obj):
     if isinstance(obj, Unit):
         unit = obj
         obj = unit.translation
-        if (unit.readonly or unit.approved) and not check_unit_review(
-            user, "unit.review", obj, skip_enabled=True
+        # Read only check is unconditional as there is another one
+        # in PluralTextarea.render
+        if unit.readonly or (
+            unit.approved
+            and not check_unit_review(user, "unit.review", obj, skip_enabled=True)
         ):
             return False
     if isinstance(obj, Translation) and obj.is_readonly:
@@ -214,6 +217,11 @@ def check_suggestion_add(user, permission, obj):
     if isinstance(obj, Unit):
         obj = obj.translation
     if not obj.component.enable_suggestions:
+        return False
+    # Check contributor agreement
+    if obj.component.agreement and not ContributorAgreement.objects.has_agreed(
+        user, obj.component
+    ):
         return False
     return check_permission(user, permission, obj)
 

@@ -367,6 +367,11 @@ real_patterns = [
         name="create-component-zip",
     ),
     url(
+        r"^create/component/doc/$",
+        weblate.trans.views.create.CreateFromDoc.as_view(),
+        name="create-component-doc",
+    ),
+    url(
         r"^contributor-agreement/" + COMPONENT + "$",
         weblate.trans.views.agreement.agreement_confirm,
         name="contributor-agreement",
@@ -693,6 +698,11 @@ real_patterns = [
     # Translation memory
     url(r"^memory/$", weblate.memory.views.MemoryView.as_view(), name="memory"),
     url(
+        r"^memory/delete/$",
+        weblate.memory.views.DeleteView.as_view(),
+        name="memory-delete",
+    ),
+    url(
         r"^memory/upload/$",
         weblate.memory.views.UploadView.as_view(),
         name="memory-upload",
@@ -719,6 +729,11 @@ real_patterns = [
         name="memory-upload",
     ),
     url(
+        r"^(?P<manage>manage)/memory/delete/$",
+        management_access(weblate.memory.views.DeleteView.as_view()),
+        name="memory-delete",
+    ),
+    url(
         r"^(?P<manage>manage)/memory/download/$",
         management_access(weblate.memory.views.DownloadView.as_view()),
         name="memory-download",
@@ -727,6 +742,11 @@ real_patterns = [
         r"^memory/project/" + PROJECT + "$",
         weblate.memory.views.MemoryView.as_view(),
         name="memory",
+    ),
+    url(
+        r"^memory/project/" + PROJECT + "delete/$",
+        weblate.memory.views.DeleteView.as_view(),
+        name="memory-delete",
     ),
     url(
         r"^memory/project/" + PROJECT + "upload/$",
@@ -1271,6 +1291,11 @@ if "wlhosted.integrations" in settings.INSTALLED_APPS:
 
     real_patterns += [
         url(r"^create/billing/$", CreateBillingView.as_view(), name="create-billing")
+    ]
+
+if "djangosaml2idp" in settings.INSTALLED_APPS:
+    real_patterns += [
+        url(r"^idp/", include("djangosaml2idp.urls")),
     ]
 
 

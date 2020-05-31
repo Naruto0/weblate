@@ -23,6 +23,7 @@ import os
 import shutil
 
 from django.core.exceptions import ValidationError
+from django.test.utils import override_settings
 
 from weblate.checks.models import Check
 from weblate.lang.models import Language
@@ -60,7 +61,12 @@ class ComponentTest(RepoTestCase):
             self.assertEqual(translation.unit_set.count(), units)
             # Check whether unit exists
             if units:
-                self.assertTrue(translation.unit_set.filter(source=unit).exists())
+                self.assertTrue(
+                    translation.unit_set.filter(source=unit).exists(),
+                    "Unit not found, all units: {}".format(
+                        "\n".join(translation.unit_set.values_list("source", flat=True))
+                    ),
+                )
 
         if component.has_template() and component.edit_template:
             translation = component.translation_set.get(filename=component.template)
@@ -207,6 +213,42 @@ class ComponentTest(RepoTestCase):
         self.verify_component(component, 2, "en", 4, "Hello world!\n", source_units=3)
         # For Czech the English source string should be used
         self.verify_component(component, 2, "cs", 4, source_units=3)
+        # Verify source strings are loaded from correct file
+        translation = component.translation_set.get(language_code="cs")
+        self.assertEqual(
+            translation.unit_set.get(context=".hello").source, "Hello, world!\n"
+        )
+        self.assertEqual(
+            translation.unit_set.get(context=".thanks").source,
+            "Thank you for using Weblate.",
+        )
+
+    def test_switch_json_intermediate(self):
+        component = self._create_component(
+            "json",
+            "intermediate/*.json",
+            "intermediate/dev.json",
+            language_regex="^cs$",
+        )
+        translation = component.translation_set.get(language_code="cs")
+        self.assertEqual(
+            translation.unit_set.get(context=".hello").source, "Hello world!\n"
+        )
+        self.assertEqual(
+            translation.unit_set.get(context=".thanks").source,
+            "Thanks for using Weblate.",
+        )
+        component.intermediate = "intermediate/dev.json"
+        component.template = "intermediate/en.json"
+        component.save()
+        translation = component.translation_set.get(language_code="cs")
+        self.assertEqual(
+            translation.unit_set.get(context=".hello").source, "Hello, world!\n"
+        )
+        self.assertEqual(
+            translation.unit_set.get(context=".thanks").source,
+            "Thank you for using Weblate.",
+        )
 
     def test_create_json_intermediate_empty(self):
         # This should automatically create empty English file
@@ -217,6 +259,10 @@ class ComponentTest(RepoTestCase):
     def test_create_joomla(self):
         component = self.create_joomla()
         self.verify_component(component, 3, "cs", 4)
+
+    def test_create_ini(self):
+        component = self.create_ini()
+        self.verify_component(component, 2, "cs", 4, "Hello, world!\\n")
 
     def test_create_tsv_simple(self):
         component = self._create_component("csv-simple", "tsv/*.txt")
@@ -305,6 +351,24 @@ class ComponentTest(RepoTestCase):
         component = self.create_dtd()
         self.verify_component(component, 2, "cs", 4)
 
+    def test_create_html(self):
+        component = self.create_html()
+        self.verify_component(component, 2, "cs", 4, unit="Hello, world!")
+
+    def test_create_idml(self):
+        component = self.create_idml()
+        self.verify_component(
+            component,
+            1,
+            "en",
+            5,
+            unit="""<g id="0"><g id="1">THE HEADLINE HERE</g></g>""",
+        )
+
+    def test_create_odt(self):
+        component = self.create_odt()
+        self.verify_component(component, 2, "cs", 4, unit="Hello, world!")
+
     def test_link(self):
         component = self.create_link()
         self.verify_component(component, 4, "cs", 4)
@@ -382,6 +446,34 @@ class ComponentTest(RepoTestCase):
         component.check_flags = "ignore-{0}".format(check.check)
         component.save()
         self.assertEqual(Check.objects.count(), 0)
+
+    @override_settings(
+        DEFAULT_ADDONS={
+            # Invalid addon name
+            "weblate.invalid.invalid": {},
+            # Duplicate (installed by file format)
+            "weblate.flags.same_edit": {},
+            # Not compatible
+            "weblate.gettext.mo": {},
+            # Missing params
+            "weblate.removal.comments": {},
+            # Correct
+            "weblate.autotranslate.autotranslate": {
+                "mode": "suggest",
+                "filter_type": "todo",
+                "auto_source": "mt",
+                "component": "",
+                "engines": ["weblate-translation-memory"],
+                "threshold": "80",
+            },
+        }
+    )
+    def test_create_autoaddon(self):
+        component = self.create_idml()
+        self.assertEqual(
+            set(component.addon_set.values_list("name", flat=True)),
+            {"weblate.flags.same_edit", "weblate.autotranslate.autotranslate"},
+        )
 
 
 class ComponentDeleteTest(RepoTestCase):

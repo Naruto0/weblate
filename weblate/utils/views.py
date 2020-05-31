@@ -80,6 +80,28 @@ class ProjectViewMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+def get_sort_name(request):
+    """Gets sort name."""
+    sort_dict = {
+        "position": _("Position"),
+        "priority": _("Priority"),
+        "labels": _("Labels"),
+        "timestamp": _("Age of string"),
+        "num_words": _("Word count"),
+        "num_comments": _("Number of comments"),
+        "num_failing_checks": _("Number of failing checks"),
+        "context": _("Context"),
+        "priority,position": _("Position and priority"),
+    }
+    sort_params = request.GET.get("sort_by", "-priority,position").replace("-", "")
+    sort_name = sort_dict.get(sort_params, _("Position and priority"))
+    result = {
+        "query": request.GET.get("sort_by", "-priority,position"),
+        "name": sort_name,
+    }
+    return result
+
+
 def get_translation(request, project, component, lang, skip_acl=False):
     """Return translation matching parameters."""
     try:

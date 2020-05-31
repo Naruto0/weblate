@@ -41,8 +41,7 @@ class PlaceholderCheck(TargetCheckParametrized):
     check_id = "placeholders"
     default_disabled = True
     name = _("Placeholders")
-    description = _("Translation is missing some placeholders")
-    severity = "danger"
+    description = _("Translation is missing some placeholders:")
     param_type = parse_placeholders
 
     def check_target_params(self, sources, targets, unit, value):
@@ -59,13 +58,26 @@ class PlaceholderCheck(TargetCheckParametrized):
             ret.append((match.start(), match.end(), match.group()))
         return ret
 
+    def get_description(self, check_obj):
+        unit = check_obj.unit
+        if not self.has_value(unit):
+            return super().get_description(check_obj)
+        targets = unit.get_target_plurals()
+        missing = [
+            param
+            for param in self.get_value(unit)
+            if any(param not in target for target in targets)
+        ]
+        return mark_safe(
+            "{} {}".format(escape(self.description), escape(", ".join(missing)))
+        )
+
 
 class RegexCheck(TargetCheckParametrized):
     check_id = "regex"
     default_disabled = True
     name = _("Regular expression")
     description = _("Translation does not match regular expression:")
-    severity = "danger"
     param_type = parse_regex
 
     def check_target_params(self, sources, targets, unit, value):
@@ -84,6 +96,8 @@ class RegexCheck(TargetCheckParametrized):
 
     def get_description(self, check_obj):
         unit = check_obj.unit
+        if not self.has_value(unit):
+            return super().get_description(check_obj)
         regex = self.get_value(unit)
         return mark_safe(
             "{} <code>{}</code>".format(escape(self.description), escape(regex.pattern))

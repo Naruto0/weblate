@@ -31,7 +31,24 @@ work, but is not as well tested as single version upgrades.
 1. Stop wsgi and Celery processes. The upgrade can perform incompatible changes in the
    database, so it is always safer to avoid old processes running while upgrading.
 
-2. Upgrade Weblate code. For pip installs it can be achieved by ``pip install -U Weblate`` for Git checkout ``git pull`` should do it.
+2. Upgrade Weblate code.
+
+   For pip installs it can be achieved by:
+
+   .. code-block:: sh
+
+      pip install -U Weblate
+
+   With Git checkout you need to fetch new source code and update your installation:
+
+   .. code-block:: sh
+
+        cd weblate-src
+        git pull
+        # Update Weblate inside your virtualenv
+        . ~/weblate-env/bin/pip install -e .
+        # Install dependecies directly when not using virtualenv
+        pip install --upgrade -r requirements.txt
 
 3. Upgrade configuration file, refer to :file:`settings_example.py` or
    :ref:`version-specific-instructions` for needed steps.
@@ -252,6 +269,20 @@ Notable configuration or dependencies changes:
 * The migration will take some time if you have big translation memory.
 * The translation memory and fulltext search now resides in the database, you can remove the :file:`memory` and :file:`whoosh` folders in the :setting:`DATA_DIR` after the upgrade.
 * The database migration now creates PostgreSQL extensions, Weblate user now has to be superuser or the extensions created manuall, see :ref:`dbsetup-postgres`.
+
+.. seealso:: :ref:`generic-upgrade-instructions`
+
+Upgrade from 4.0 to 4.1
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Please follow :ref:`generic-upgrade-instructions` in order to perform update.
+
+Notable configuration or dependencies changes:
+
+* There are several changes in :file:`settings_example.py`, most notable middleware changes, please adjust your settings accordingly.
+* There are new file formats, you might want to include them in case you modified the :setting:`WEBLATE_FORMATS`.
+* There are new quality checks, you might want to include them in case you modified the :setting:`CHECK_LIST`.
+* There is change in ``DEFAULT_THROTTLE_CLASSES`` setting to allow reporting of rate limiting the in API.
 
 .. seealso:: :ref:`generic-upgrade-instructions`
 

@@ -8,6 +8,8 @@ on:
       - requirements*.txt
       - ci/*
       - .github/workflows/test.yml
+    branches-ignore:
+      - "dependabot/**"
   pull_request:
     paths:
       - weblate/**
@@ -105,6 +107,8 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Used versions
+        run: ./ci/print-versions
       - name: Install pip dependencies
         run: ./ci/pip-install ${{ matrix.requirements }}
       - name: Test with Django

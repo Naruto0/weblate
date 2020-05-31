@@ -17,19 +17,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-
-from django.db import models
-
-from weblate.trans.fields import RegexField
+from weblate.utils.management.base import BaseCommand
+from weblate.utils.stats import GlobalStats
 
 
-class Shaping(models.Model):
-    component = models.ForeignKey("Component", on_delete=models.deletion.CASCADE)
-    shaping_regex = RegexField(max_length=190)
-    key = models.CharField(max_length=190, db_index=True)
+class Command(BaseCommand):
+    help = "ensures that stats are present"
 
-    class Meta:
-        unique_together = (("key", "component", "shaping_regex"),)
-
-    def __str__(self):
-        return "{}: {}".format(self.component, self.key)
+    def handle(self, *args, **options):
+        GlobalStats().ensure_basic()

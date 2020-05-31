@@ -66,6 +66,8 @@ Capabilities of all supported formats:
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 | :ref:`javaprop`     | both             | no            | yes            | no            | no             | no             |                         |
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
+| :ref:`gwt`          | mono             | yes           | yes            | no            | no             | no             |                         |
++---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 | :ref:`joomla`       | mono             | no            | yes            | no            | yes            | no             |                         |
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 | :ref:`qtling`       | both             | yes           | yes            | no            | yes            | yes [#xl]_     | needs editing           |
@@ -74,7 +76,7 @@ Capabilities of all supported formats:
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 | :ref:`apple`        | bilingual        | no            | yes            | no            | no             | no             |                         |
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
-| :ref:`php`          | mono             | no            | yes            | no            | no             | no             |                         |
+| :ref:`php`          | mono             | no [#lp]_     | yes            | no            | no             | no             |                         |
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 | :ref:`json`         | mono             | no            | no             | no            | no             | no             |                         |
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
@@ -102,6 +104,16 @@ Capabilities of all supported formats:
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 | :ref:`subtitles`    | mono             | no            | no             | no            | yes            | no             |                         |
 +---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
+| :ref:`html`         | mono             | no            | no             | no            | no             | no             |                         |
++---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
+| :ref:`odf`          | mono             | no            | no             | no            | no             | no             |                         |
++---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
+| :ref:`idml`         | mono             | no            | no             | no            | no             | no             |                         |
++---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
+| :ref:`ini`          | mono             | no            | no             | no            | no             | no             |                         |
++---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
+| :ref:`islu`         | mono             | no            | no             | no            | no             | no             |                         |
++---------------------+------------------+---------------+----------------+---------------+----------------+----------------+-------------------------+
 
 .. [#m] See :ref:`bimono`
 .. [#p] Plurals are necessary to properly localize strings with variable count.
@@ -112,7 +124,8 @@ Capabilities of all supported formats:
 .. [#x] XML comment placed before the ``<string>`` element, parsed as a developer comment.
 .. [#f] See :ref:`custom-checks`
 .. [#po] The gettext type comments are used as flags.
-.. [#xl] The flags are extracted from the non-standard attibute ``weblate-flags`` for all XML based formats. Additionally ``max-length:N`` is supported through the ``maxwidth`` [attribute](http://docs.oasis-open.org/xliff/v1.2/os/xliff-core.html#maxwidth) as defined in the XLIFF standard, see :ref:`xliff-flags`.
+.. [#xl] The flags are extracted from the non-standard attibute ``weblate-flags`` for all XML based formats. Additionally ``max-length:N`` is supported through the ``maxwidth`` `attribute <http://docs.oasis-open.org/xliff/v1.2/os/xliff-core.html#maxwidth>`_ as defined in the XLIFF standard, see :ref:`xliff-flags`.
+.. [#lp] The plurals are supported only for Laravel which uses in string syntax to define them, see `Localization in Laravel`_.
 
 .. _gettext:
 
@@ -233,11 +246,14 @@ XLIFF
 XML-based format created to standardize translation files, but in the end it
 is one of `many standards <https://xkcd.com/927/>`_, in this area.
 
-[XLIFF](http://docs.oasis-open.org/xliff/xliff-core/xliff-core.html) is usually used as bilingual, but Weblate supports it as monolingual as well.
+`XML Localization Interchange File Format (XLIFF)` is usually used as bilingual, but Weblate supports it as monolingual as well.
 
 .. seealso::
 
-    `Specification of XLIFF 1.2 <http://docs.oasis-open.org/xliff/v1.2/os/xliff-core.html>`_,
+    `XML Localization Interchange File Format (XLIFF)` specification
+
+.. _XML Localization Interchange File Format (XLIFF): http://docs.oasis-open.org/xliff/v1.2/os/xliff-core.html
+
 
 Translation states
 +++++++++++++++++++
@@ -385,6 +401,111 @@ all others encode characters directly either in UTF-8 or UTF-16.
     :ref:`addon-weblate.properties.sort`,
     :ref:`addon-weblate.cleanup.generic`,
 
+.. _gwt:
+
+GWT properties
+--------------
+
+.. index::
+    pair: GWT properties; file format
+
+Native GWT format for translations.
+
+GWT properties are usually used as monolingual translations.
+
++-------------------------------------------------------------------+
+| Typical Weblate :ref:`component`                                  |
++================================+==================================+
+| Filemask                       | ``src/app/Bundle_*.properties``  |
++--------------------------------+----------------------------------+
+| Monolingual base language file | ``src/app/Bundle.properties``    |
++--------------------------------+----------------------------------+
+| Template for new translations  | `Empty`                          |
++--------------------------------+----------------------------------+
+| File format                    | `GWT Properties`                 |
++--------------------------------+----------------------------------+
+
+.. seealso::
+
+    `GWT localization guide <http://www.gwtproject.org/doc/latest/DevGuideI18n.html>`_
+    :doc:`tt:formats/properties`,
+    :ref:`addon-weblate.properties.sort`,
+    :ref:`addon-weblate.cleanup.generic`,
+
+.. _ini:
+
+INI translations
+----------------
+
+.. index::
+    pair: INI translations; file format
+
+.. versionadded:: 4.1
+
+INI file format for translations.
+
+INI translations are usually used as monolingual translations.
+
++-------------------------------------------------------------------+
+| Typical Weblate :ref:`component`                                  |
++================================+==================================+
+| Filemask                       | ``language/*.ini``               |
++--------------------------------+----------------------------------+
+| Monolingual base language file | ``language/en.ini``              |
++--------------------------------+----------------------------------+
+| Template for new translations  | `Empty`                          |
++--------------------------------+----------------------------------+
+| File format                    | `INI File`                       |
++--------------------------------+----------------------------------+
+
+.. seealso::
+
+    :doc:`tt:formats/ini`,
+    :ref:`joomla`,
+    :ref:`islu`
+
+.. _islu:
+
+InnoSetup INI translations
+--------------------------
+
+.. index::
+    pair: INI translations; file format
+
+.. versionadded:: 4.1
+
+InnoSetup INI file format for translations.
+
+InnoSetup INI translations are usually used as monolingual translations.
+
+.. note::
+
+   The only notable difference to :ref:`ini` is in supporting ``%n`` and ``%t``
+   placeholders for line break and tab.
+
++-------------------------------------------------------------------+
+| Typical Weblate :ref:`component`                                  |
++================================+==================================+
+| Filemask                       | ``language/*.islu``              |
++--------------------------------+----------------------------------+
+| Monolingual base language file | ``language/en.islu``             |
++--------------------------------+----------------------------------+
+| Template for new translations  | `Empty`                          |
++--------------------------------+----------------------------------+
+| File format                    | `InnoSetup INI File`             |
++--------------------------------+----------------------------------+
+
+.. note::
+
+   Only Unicode files (``.islu``) are currently supported, ANSI variant
+   (``.isl``) is currently not supported.
+
+.. seealso::
+
+    :doc:`tt:formats/ini`,
+    :ref:`joomla`,
+    :ref:`ini`
+
 .. _joomla:
 
 Joomla translations
@@ -414,7 +535,9 @@ Joomla translations are usually used as monolingual translations.
 .. seealso::
 
     `Specification of Joomla language files <https://docs.joomla.org/Specification_of_language_files>`_,
-    :doc:`tt:formats/properties`
+    :doc:`tt:formats/properties`,
+    :ref:`ini`,
+    :ref:`islu`
 
 .. _qtling:
 
@@ -579,21 +702,26 @@ Example file:
 | File format                    | `PHP strings`                    |
 +--------------------------------+----------------------------------+
 
-.. note::
+Laravel PHP strings
++++++++++++++++++++
 
-    Translate-toolkit currently has some limitations in processing PHP files,
-    so please double check that your files will not get corrupted before using
-    Weblate in a production setup.
+.. versionchanged:: 4.1
 
-    Following things are known to be broken:
+The Laravel PHP locazation files are supported as well with plurals:
 
-    * Addition of new strings to a translation, every translation has to contain all strings (even if empty).
-    * Handling of special characters like newlines.
+.. code-block:: php
 
+    <?php
+    return [
+        'apples' => 'There is one apple|There are many apples',
+    ];
 
 .. seealso::
 
-    :doc:`tt:formats/php`
+    :doc:`tt:formats/php`,
+    `Localization in Laravel`_
+
+.. _Localization in Laravel: https://laravel.com/docs/7.x/localization
 
 .. _json:
 
@@ -714,6 +842,12 @@ WebExtension JSON
 
 File format used when translating extensions for Mozilla Firefox or Google Chromium.
 
+.. note::
+
+    While this format is called JSON, its specification allows to include
+    comments, which are not part of JSON specification. Weblate currently does
+    not support file with comments.
+
 Example file:
 
 .. literalinclude:: ../weblate/trans/tests/data/cs-webext.json
@@ -829,7 +963,7 @@ YAML files
 
 .. versionadded:: 2.9
 
-The plain YAML files with string keys and values.
+The plain YAML files with string keys and values. Weblate also extract strings from lists or dictionaries.
 
 Example of a YAML file:
 
@@ -950,14 +1084,13 @@ Example of a flat XML file:
 Windows RC files
 ----------------
 
-.. versionadded:: 3.0
+.. versionchanged:: 4.1
 
-    Experimental support has been added in Weblate 3.0, and is not supported in Python 3.
+    Support for Windows RC files has been rewritten.
 
-.. warning::
+.. note::
 
-    This format is still not supported on Python 3 due to bugs in underlying library,
-    see <https://github.com/translate/translate/issues/3204>.
+   Support for this format is currently in beta, feedback from testing is welcome.
 
 .. index::
     pair: RC; file format
@@ -1058,6 +1191,53 @@ contains the translation). Additionally there should be the column called ``cont
 download for exporting the translations into an Excel workbook, you already get
 a file with the correct file format.
 
+.. _html:
+
+HTML files
+----------
+
+.. versionadded:: 4.1
+
+.. note::
+
+   Support for this format is currently in beta, feedback from testing is welcome.
+
+The translatable content is extacted from the HTML files and offered for the translation.
+
+.. seealso::
+
+   :doc:`tt:formats/html`
+
+.. _odf:
+
+OpenDocument Format
+-------------------
+
+.. versionadded:: 4.1
+
+.. note::
+
+   Support for this format is currently in beta, feedback from testing is welcome.
+
+The translatable content is extacted from the OpenDocument files and offered for the translation.
+
+.. seealso::
+
+   :doc:`tt:formats/odf`
+
+.. _idml:
+
+IDML Format
+-----------
+
+.. versionadded:: 4.1
+
+.. note::
+
+   Support for this format is currently in beta, feedback from testing is welcome.
+
+The translatable content is extacted from the Adobe InDesign Markup Language files and offered for the translation.
+
 
 Others
 ------
@@ -1106,9 +1286,15 @@ Default based on the file format
 POSIX style using underscore as a separator
    Typically used by gettext and related tools, produces language codes like
    `pt_BR`.
+POSIX style using underscore as a separator, including country code
+   POSIX style language code including the country code even when not necessary
+   (for example 'cs_CZ').
 BCP style using hyphen as a separator
    Typically used on web platforms, produces language codes like
    `pt-BR`.
+BCP style using hyphen as a separator, including country code
+   BCP style language code including the country code even when not necessary
+   (for example 'cs-CZ').
 Android style
    Only used in Android apps, produces language codes like
    `pt-rBR`.

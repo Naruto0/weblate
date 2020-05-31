@@ -56,7 +56,7 @@ from weblate.utils.antispam import is_spam
 from weblate.utils.hash import hash_to_checksum
 from weblate.utils.ratelimit import revert_rate_limit, session_ratelimit_post
 from weblate.utils.state import STATE_FUZZY
-from weblate.utils.views import get_translation, show_form_errors
+from weblate.utils.views import get_sort_name, get_translation, show_form_errors
 
 
 def get_other_units(unit):
@@ -112,7 +112,7 @@ def cleanup_session(session):
 def search(translation, request):
     """Perform search or returns cached search results."""
     # Possible new search
-    form = SearchForm(request.user, request.GET)
+    form = SearchForm(request.user, request.GET, show_builder=False)
 
     # Process form
     form_valid = form.is_valid()
@@ -130,6 +130,7 @@ def search(translation, request):
     if (
         session_key in request.session
         and "offset" in request.GET
+        and "sort_by" not in request.GET
         and "items" in request.session[session_key]
     ):
         search_result.update(request.session[session_key])
@@ -138,10 +139,12 @@ def search(translation, request):
     allunits = translation.unit_set.search(form.cleaned_data.get("q", "")).distinct()
 
     search_query = form.get_search_query() if form_valid else ""
-    name = form.get_name() if form_valid else ""
+    name = form.get_name()
 
     # Grab unit IDs
-    unit_ids = list(allunits.order().values_list("id", flat=True))
+    unit_ids = list(
+        allunits.order_by_request(form.cleaned_data).values_list("id", flat=True)
+    )
 
     # Check empty search results
     if not unit_ids:
@@ -198,7 +201,7 @@ def perform_suggestion(unit, form, request):
 def perform_translation(unit, form, request):
     """Handle translation and stores it to a backend."""
     # Remember old checks
-    oldchecks = set(unit.active_checks().values_list("check", flat=True))
+    oldchecks = unit.all_checks_names
 
     # Run AutoFixes on user input
     if not unit.translation.is_template:
@@ -224,7 +227,7 @@ def perform_translation(unit, form, request):
         )
 
     # Get new set of checks
-    newchecks = set(unit.active_checks().values_list("check", flat=True))
+    newchecks = unit.all_checks_names
 
     # Did we introduce any new failures?
     if saved and newchecks > oldchecks:
@@ -378,10 +381,10 @@ def handle_suggestions(translation, request, this_unit_url, next_unit_url):
     elif "delete" in request.POST or "spam" in request.POST:
         suggestion.delete_log(request.user, is_spam="spam" in request.POST)
     elif "upvote" in request.POST:
-        suggestion.add_vote(translation, request, Vote.POSITIVE)
+        suggestion.add_vote(request, Vote.POSITIVE)
         redirect_url = next_unit_url
     elif "downvote" in request.POST:
-        suggestion.add_vote(translation, request, Vote.NEGATIVE)
+        suggestion.add_vote(request, Vote.NEGATIVE)
 
     return HttpResponseRedirect(redirect_url)
 
@@ -486,6 +489,7 @@ def translate(request, project, component, lang):
 
     # Prepare form
     form = TranslationForm(request.user, translation, unit)
+    sort = get_sort_name(request)
 
     return render(
         request,
@@ -500,11 +504,12 @@ def translate(request, project, component, lang):
             "project": translation.component.project,
             "unit": unit,
             "others": get_other_units(unit),
-            "total": translation.unit_set.all().count(),
             "search_url": search_result["url"],
             "search_items": search_result["items"],
             "search_query": search_result["query"],
             "offset": offset,
+            "sort_name": sort["name"],
+            "sort_query": sort["query"],
             "filter_name": search_result["name"],
             "filter_count": num_results,
             "filter_pos": offset,
@@ -583,7 +588,7 @@ def comment(request, pk):
         if form.cleaned_data["scope"] in ("global", "report"):
             scope = unit.source_info
         # Create comment object
-        Comment.objects.add(scope, request.user, form.cleaned_data["comment"])
+        Comment.objects.add(scope, request, form.cleaned_data["comment"])
         # Add review label/flag
         if form.cleaned_data["scope"] == "report":
             if component.has_template():
@@ -619,6 +624,8 @@ def delete_comment(request, pk):
 
     fallback_url = comment_obj.unit.get_absolute_url()
 
+    if "spam" in request.POST:
+        comment_obj.report_spam()
     comment_obj.delete()
     messages.info(request, _("Translation comment has been deleted."))
 
@@ -685,6 +692,7 @@ def zen(request, project, component, lang):
     """Generic entry point for translating, suggesting and searching."""
     translation = get_translation(request, project, component, lang)
     search_result, unitdata = get_zen_unitdata(translation, request)
+    sort = get_sort_name(request)
 
     # Handle redirects
     if isinstance(search_result, HttpResponse):
@@ -700,6 +708,8 @@ def zen(request, project, component, lang):
             "search_query": search_result["query"],
             "filter_name": search_result["name"],
             "filter_count": len(search_result["ids"]),
+            "sort_name": sort["name"],
+            "sort_query": sort["query"],
             "last_section": search_result["last_section"],
             "search_url": search_result["url"],
             "offset": search_result["offset"],

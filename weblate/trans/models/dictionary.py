@@ -124,9 +124,11 @@ class DictionaryQuerySet(models.QuerySet):
             stopfilter = StopFilter()
 
         # Prepare analyzers
-        # - simple analyzer just splits words based on regexp
+        # - basic simple analyzer to split on non-word chars
+        # - simple analyzer just splits words based on regexp to catch in word dashes
         # - language analyzer if available (it is for English)
         analyzers = [
+            SimpleAnalyzer() | stopfilter,
             SimpleAnalyzer(expression=SPLIT_RE, gaps=True) | stopfilter,
             LanguageAnalyzer(source_language.base_code),
         ]
@@ -195,6 +197,8 @@ class Dictionary(models.Model):
 
     class Meta:
         app_label = "trans"
+        verbose_name = "glossary entry"
+        verbose_name_plural = "glossary entries"
 
     def __str__(self):
         return "{0}/{1}: {2} -> {3}".format(

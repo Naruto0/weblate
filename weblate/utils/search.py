@@ -29,6 +29,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from jellyfish import damerau_levenshtein_distance
 from whoosh.fields import BOOLEAN, DATETIME, NUMERIC, TEXT, Schema
+from whoosh.util.times import long_to_datetime
 
 from weblate.trans.util import PLURAL_SEPARATOR
 from weblate.utils.state import (
@@ -156,7 +157,7 @@ class QueryParser(whoosh.qparser.QueryParser):
             "changed_by": TEXT,
             # Unit data
             "check": TEXT,
-            "ignored_check": TEXT,
+            "dismissed_check": TEXT,
             "suggestion": TEXT,
             "suggestion_author": TEXT,
             "comment": TEXT,
@@ -199,7 +200,7 @@ FIELD_MAP = {"changed": "change__timestamp", "added": "timestamp"}
 STRING_FIELD_MAP = {"suggestion": "suggestion__target", "comment": "comment__comment"}
 EXACT_FIELD_MAP = {
     "check": "check__check",
-    "ignored_check": "check__check",
+    "dismissed_check": "check__check",
     "language": "translation__language__code",
     "changed_by": "change__author__username",
     "suggestion_author": "suggestion__user__username",
@@ -229,9 +230,9 @@ def field_extra(field, query):
     if field in {"changed", "changed_by"}:
         return query & Q(change__action__in=Change.ACTIONS_CONTENT)
     if field == "check":
-        return query & Q(check__ignore=False)
-    if field == "ignored_check":
-        return query & Q(check__ignore=True)
+        return query & Q(check__dismissed=False)
+    if field == "dismissed_check":
+        return query & Q(check__dismissed=True)
     return query
 
 
@@ -253,21 +254,27 @@ def has_sql(text):
     if text == "plural":
         return Q(source__contains=PLURAL_SEPARATOR)
     if text == "suggestion":
-        return Q(has_suggestion=True)
+        return Q(suggestion__isnull=False)
     if text == "comment":
-        return Q(has_comment=True)
+        return Q(comment__resolved=False)
+    if text in ("resolved-comment", "resolved_comment"):
+        return Q(comment__resolved=True)
     if text in ("check", "failing-check", "failing_check"):
-        return Q(has_failing_check=True)
-    if text in ("ignored-check", "ignored_check"):
-        return Q(check__ignore=True)
+        return Q(check__dismissed=False)
+    if text in ("dismissed-check", "dismissed_check", "ignored-check", "ignored_check"):
+        return Q(check__dismissed=True)
     if text == "translation":
         return Q(state__gte=STATE_TRANSLATED)
-    if text == "shaping":
-        return Q(shaping__isnull=False)
+    if text in ("variant", "shaping"):
+        return Q(variant__isnull=False)
     if text == "label":
         return Q(labels__isnull=False)
     if text == "context":
         return ~Q(context="")
+    if text == "screenshot":
+        return Q(screenshots__isnull=False)
+    if text == "flags":
+        return ~Q(extra_flags="")
 
     raise ValueError("Unsupported has lookup: {}".format(text))
 
@@ -327,6 +334,18 @@ def query_sql(obj):
             ),
         )
     if isinstance(obj, whoosh.query.NumericRange):
+        if obj.fieldname in {"added", "changed"}:
+            return field_extra(
+                obj.fieldname,
+                range_sql(
+                    obj.fieldname,
+                    long_to_datetime(obj.start),
+                    long_to_datetime(obj.end),
+                    obj.startexcl,
+                    obj.endexcl,
+                    timezone.make_aware,
+                ),
+            )
         return range_sql(obj.fieldname, obj.start, obj.end, obj.startexcl, obj.endexcl)
     if isinstance(obj, whoosh.query.Regex):
         try:

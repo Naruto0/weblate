@@ -7,7 +7,9 @@ All settings are stored in :file:`settings.py` (as is usual for Django).
 
 .. note::
 
-    After changing any of these settings, you need to restart Weblate.
+    After changing any of these settings, you need to restart Weblate - both
+    WSGI and Celery processes.
+
     In case it is run as mod_wsgi, you need to restart Apache to reload the
     configuration.
 
@@ -366,6 +368,40 @@ Default commit messages for different operations, see :ref:`component`.
 
    :ref:`markup`, :ref:`component`
 
+
+.. setting:: DEFAULT_ADDONS
+
+DEFAULT_ADDONS
+--------------
+
+Default addons to install on every created component.
+
+.. note::
+
+   This setting affects only newly created components.
+
+Example:
+
+.. code-block:: python
+
+   DEFAULT_ADDONS = {
+        # Addon with no parameters
+        "weblate.flags.target_edit": {},
+
+        # Addon with parameters
+        "weblate.autotranslate.autotranslate": {
+            "mode": "suggest",
+            "filter_type": "todo",
+            "auto_source": "mt",
+            "component": "",
+            "engines": ["weblate-translation-memory"],
+            "threshold": "80",
+        }
+   }
+
+.. seealso::
+
+   :djadmin:`install_addon`
 
 .. setting:: DEFAULT_COMMITER_EMAIL
 
@@ -939,7 +975,9 @@ MT_MICROSOFT_BASE_URL
 Region base url domain as defined in the `Base URLs section
 <https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference#base-urls>`_.
 
-Defaults to ``api.cognitive.microsofttranslator.com``.
+Defaults to ``api.cognitive.microsofttranslator.com`` for Azure Global.
+
+For Azure China, please use ``api.translator.azure.cn``.
 
 .. setting:: MT_MICROSOFT_COGNITIVE_KEY
 
@@ -959,6 +997,18 @@ MT_MICROSOFT_REGION
 -------------------
 
 Region prefix as defined in `Multi service subscription <https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference#authenticating-with-a-multi-service-resource>`_.
+
+.. setting:: MT_MICROSOFT_ENDPOINT_URL
+
+MT_MICROSOFT_ENDPOINT_URL
+-------------------------
+
+Region endpoint url domain for access token as defined in the `Authenticating with an access token section
+<https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference#authenticating-with-an-access-token>`_.
+
+Defaults to ``api.cognitive.microsoft.com`` for Azure Global.
+
+For Azure China, please use your endpoint from Azure Portal.
 
 .. setting:: MT_MYMEMORY_EMAIL
 
@@ -1172,6 +1222,30 @@ An amount of seconds defaulting to 600 (10 minutes).
     :setting:`RATELIMIT_ATTEMPTS`,
     :setting:`RATELIMIT_WINDOW`
 
+.. setting:: REGISTRATION_ALLOW_BACKENDS
+
+REGISTRATION_ALLOW_BACKENDS
+---------------------------
+
+.. versionadded:: 4.1
+
+List of authentication backends to allow registration from in case it is otherwise disabled by
+:setting:`REGISTRATION_OPEN`.
+
+Example:
+
+.. code-block:: python
+
+    REGISTRATION_ALLOW_BACKENDS = ["azuread-oauth2", "azuread-tenant-oauth2"]
+
+.. hint::
+
+   The backend names match names used in URL for authentication.
+
+.. seealso::
+
+    :setting:`REGISTRATION_OPEN`
+
 .. setting:: REGISTRATION_CAPTCHA
 
 REGISTRATION_CAPTCHA
@@ -1213,12 +1287,20 @@ REGISTRATION_OPEN
 Whether registration of new accounts is currently permitted.
 This optional setting can be be the default``True`` or changed to ``False``.
 
+This setting affects built-in authentication by e-mail address or through the
+Python Social Auth (you can white list certain backends using
+:setting:`REGISTRATION_ALLOW_BACKENDS`).
+
 .. note::
 
-   This setting affects built-in authentication by e-mail address or through the
-   Python Social Auth. If using third-party authentication methods such
-   as :ref:`ldap-auth`, it just hides the registration form, but new users might
-   still be able to sign in and create accounts.
+   If using third-party authentication methods such as :ref:`ldap-auth`, it
+   just hides the registration form, but new users might still be able to sign
+   in and create accounts.
+
+.. seealso::
+
+    :setting:`REGISTRATION_ALLOW_BACKENDS`,
+    :setting:`REGISTRATION_EMAIL_MATCH`
 
 .. setting:: REPOSITORY_ALERT_THRESHOLD
 

@@ -24,11 +24,12 @@ from django.test.utils import modify_settings
 from django.urls import reverse
 
 from weblate.trans.tests.test_views import ViewTestCase
-from weblate.trans.tests.utils import create_billing, get_test_file
+from weblate.trans.tests.utils import create_test_billing, get_test_file
 from weblate.vcs.git import GitRepository
 
 TEST_ZIP = get_test_file("translations.zip")
 TEST_INVALID_ZIP = get_test_file("invalid.zip")
+TEST_HTML = get_test_file("cs.html")
 
 
 class CreateTest(ViewTestCase):
@@ -51,6 +52,7 @@ class CreateTest(ViewTestCase):
             "name": "Create Project",
             "slug": "create-project",
             "web": "https://weblate.org/",
+            "source_language": "1",
         }
         params.update(kwargs)
         response = self.client.post(reverse("create-project"), params)
@@ -69,7 +71,7 @@ class CreateTest(ViewTestCase):
         self.client_create_project(reverse("create-project"))
 
         # Create empty billing
-        billing = create_billing(self.user)
+        billing = create_test_billing(self.user)
         self.assert_create_project(True)
 
         # Create one project
@@ -132,7 +134,7 @@ class CreateTest(ViewTestCase):
         self.client_create_component(False)
 
         # Create billing and add permissions
-        billing = create_billing(self.user)
+        billing = create_test_billing(self.user)
         billing.projects.add(self.project)
         self.project.add_user(self.user, "@Administration")
         self.assert_create_component(True)
@@ -291,6 +293,36 @@ class CreateTest(ViewTestCase):
         )
         self.assertContains(response, "Adding new translation")
         self.assertContains(response, "*.po")
+
+    @modify_settings(INSTALLED_APPS={"remove": "weblate.billing"})
+    def test_create_doc(self):
+        self.user.is_superuser = True
+        self.user.save()
+        with open(TEST_HTML, "rb") as handle:
+            response = self.client.post(
+                reverse("create-component-doc"),
+                {
+                    "docfile": handle,
+                    "name": "Create Component",
+                    "slug": "create-component",
+                    "project": self.project.pk,
+                },
+            )
+        self.assertContains(response, "*.html")
+
+        response = self.client.post(
+            reverse("create-component-doc"),
+            {
+                "name": "Create Component",
+                "slug": "create-component",
+                "project": self.project.pk,
+                "vcs": "local",
+                "repo": "local:",
+                "discovery": "0",
+            },
+        )
+        self.assertContains(response, "Adding new translation")
+        self.assertContains(response, "*.html")
 
     @modify_settings(INSTALLED_APPS={"remove": "weblate.billing"})
     def test_create_scratch(self):

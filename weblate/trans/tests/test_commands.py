@@ -25,7 +25,7 @@ from unittest import SkipTest
 
 from django.core.management import call_command
 from django.core.management.base import CommandError, SystemCheckError
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from weblate.accounts.models import Profile
 from weblate.runner import main
@@ -315,8 +315,8 @@ class BasicCommandTest(FixtureTestCase):
 class WeblateComponentCommandTestCase(ViewTestCase):
     """Base class for handling tests of WeblateComponentCommand based commands."""
 
-    command_name = ""
-    expected_string = ""
+    command_name = "checkgit"
+    expected_string = "On branch master"
 
     def do_test(self, *args, **kwargs):
         output = StringIO()
@@ -325,13 +325,6 @@ class WeblateComponentCommandTestCase(ViewTestCase):
             self.assertIn(self.expected_string, output.getvalue())
         else:
             self.assertEqual("", output.getvalue())
-
-
-class CheckGitTest(WeblateComponentCommandTestCase):
-    """Base class for handling tests of WeblateComponentCommand based commands."""
-
-    command_name = "checkgit"
-    expected_string = "On branch master"
 
     def test_all(self):
         self.do_test(all=True)
@@ -400,9 +393,19 @@ class UnLockTranslationTest(WeblateComponentCommandTestCase):
     expected_string = ""
 
 
-class FixupFlagsTest(WeblateComponentCommandTestCase):
-    command_name = "fixup_flags"
-    expected_string = "Processing"
+class CreateDemoTestCase(TestCase):
+    def test_create(self):
+        output = StringIO()
+        call_command("import_demo", stdout=output)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(Component.objects.count(), 4)
+
+
+class CleanupTestCase(TestCase):
+    def test_cleanup(self):
+        output = StringIO()
+        call_command("cleanuptrans", stdout=output)
+        self.assertEqual(output.getvalue(), "")
 
 
 class ListTranslatorsTest(RepoTestCase):

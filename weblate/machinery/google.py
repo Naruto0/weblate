@@ -40,7 +40,7 @@ class GoogleTranslation(MachineTranslation):
     max_score = 90
 
     # Map old codes used by Google to new ones used by Weblate
-    language_map = {"he": "iw", "jv": "jw", "nb": "no"}
+    language_map = {"he": "iw", "jv": "jw", "nb": "no", "fil": "tl"}
 
     def __init__(self):
         """Check configuration."""
@@ -50,7 +50,7 @@ class GoogleTranslation(MachineTranslation):
 
     def map_language_code(self, code):
         """Convert language to service specific code."""
-        return super().map_language_code(code.replace("_", "-").split("@")[0])
+        return super().map_language_code(code).replace("_", "-").split("@")[0]
 
     def download_languages(self):
         """List of supported languages."""
