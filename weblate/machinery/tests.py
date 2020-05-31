@@ -547,27 +547,27 @@ class MachineTranslationTest(TestCase):
     @override_settings(
         MT_GOOGLE_CREDENTIALS="SECRET", MT_GOOGLE_PROJECT="translating-7586"
     )
-    @patch.object(
-        GoogleTranslationV3, "download_languages", Mock(return_value=["cs", "en", "es"])
-    )
-    @patch.object(
-        GoogleTranslationV3,
-        "download_translations",
-        Mock(
-            return_value=[
-                {
-                    "text": "Ahoj",
-                    "quality": 90,
-                    "service": "Google Translate API v3",
-                    "source": "Hello",
-                }
-            ]
-        ),
-    )
     def test_google_apiv3(self):
-        with patch("google.oauth2.service_account.Credentials"):
-            machine = self.get_machine(GoogleTranslationV3)
-            self.assert_translate(machine)
+        class GoogleTranslateMock(Mock):
+            @property
+            def get_supported_languages(self):
+                language_object = Mock()
+                language_object.languge_code = "en"
+                return language_object
+
+            @property
+            def translate_text(self):
+                translation_object = Mock()
+                translation_object.translated_text = "Ahoj"
+                return translation_object
+
+        with patch(
+            "google.cloud.translate_v3.TranslationServiceClient", GoogleTranslateMock
+        ):
+            with patch("google.oauth2.service_account.Credentials"):
+
+                machine = self.get_machine(GoogleTranslationV3)
+                self.assert_translate(machine)
 
     @responses.activate
     def test_amagama_nolang(self):
