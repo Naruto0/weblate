@@ -633,38 +633,6 @@ class GoogleTranslationTest(BaseMachineTranslationTest):
             json={"data": {"translations": [{"translatedText": "svet"}]}},
         )
 
-    def test_google_apiv3_bad_config(self):
-        with self.assertRaisesRegex(
-            MachineTranslationError, r"API\sskey|Cloud\sproject"
-        ):
-            # flake8: noqa: F841
-            machine = self.get_machine(GoogleTranslationV3)
-
-    @override_settings(
-        MT_GOOGLE_CREDENTIALS="SECRET", MT_GOOGLE_PROJECT="translating-7586"
-    )
-    def test_google_apiv3(self):
-        class GoogleTranslateMock(Mock):
-            @property
-            def get_supported_languages(self):
-                language_object = Mock()
-                language_object.languge_code = "en"
-                return language_object
-
-            @property
-            def translate_text(self):
-                translation_object = Mock()
-                translation_object.translated_text = "Ahoj"
-                return translation_object
-
-        with patch(
-            "google.cloud.translate_v3.TranslationServiceClient", GoogleTranslateMock
-        ):
-            with patch("google.oauth2.service_account.Credentials"):
-
-                machine = self.get_machine(GoogleTranslationV3)
-                self.assert_translate(machine)
-
     @responses.activate
     def test_ratelimit_set(self):
         """Test manual setting of rate limit."""
@@ -970,3 +938,56 @@ class WeblateTranslationTest(FixtureTestCase):
         machine = WeblateTranslation()
         results = machine.translate(unit, self.user)
         self.assertNotEqual(results, [])
+
+
+class GoogleLanguageObj:
+    def __init__(self, lang_code):
+        self.lang_code = lang_code
+
+    @property
+    def language_code(self):
+        return self.lang_code
+
+
+class GoogleTranslationV3Client(Mock):
+    def get_supported_languages(self, *args):
+        mock_language_set = Mock()
+        mock_language_set.languages = [
+            GoogleLanguageObj("cs"),
+            GoogleLanguageObj("en"),
+            GoogleLanguageObj("es"),
+        ]
+        return mock_language_set
+
+    def translate_text(self, *args):
+        translation_obj = Mock()
+        translation_obj.translated_text = "Ahoj"
+
+        translationSet = Mock()
+        translationSet.translations = [translation_obj]
+        return translationSet
+
+
+@override_settings(
+    MT_GOOGLE_PROJECT="project-123456",
+    MT_GOOGLE_CREDENTIALS="PATH/TO/NON-EXISTENT/LOCATION",
+    MT_GOOGLE_LOCATION="location-code",
+)
+class GoogleTranslationV3Test(TestCase):
+    @patch("google.oauth2.service_account.Credentials")
+    def test_settings(self, *args):
+        self.assertEqual(settings.MT_GOOGLE_PROJECT, "project-123456")
+
+    @patch("google.oauth2.service_account.Credentials")
+    def test_language_parsing(self, *args):
+        t = GoogleTranslationV3()
+        t.client = GoogleTranslationV3Client()
+        lang = t.download_languages()
+        self.assertIn("en", lang)
+
+    @patch("google.oauth2.service_account.Credentials")
+    def test_translation_parsing(self, *args):
+        t = GoogleTranslationV3()
+        t.client = GoogleTranslationV3Client()
+        trans = list(t.translate(MockUnit()))
+        self.assertEqual()

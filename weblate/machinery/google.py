@@ -115,7 +115,7 @@ class GoogleTranslationV3(MachineTranslation):
         super().__init__()
         config_error = []
         if settings.MT_GOOGLE_CREDENTIALS is None:
-            config_error.append("Google Translate requires API key")
+            config_error.append("Google Translate V3 requires API key")
         if settings.MT_GOOGLE_PROJECT is None:
             config_error.append(
                 "You have to specify Google Cloud project "
